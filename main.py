@@ -2,11 +2,13 @@ import uuid
 from typing import Annotated
 
 from fastapi import FastAPI, Depends
-from starlette.websockets import WebSocket
+from fastapi.requests import Request
+from fastapi.templating import Jinja2Templates
+from fastapi.websockets import WebSocket
 
-from dependencies import dependencies
-from heartbeat.heartbeat import heartbeat_topic
-from messages.heartbeat import heartbeat_converter
+from dependencies import dependencies, get_current_user
+from messages.heartbeat import HeartbeatConverter
+from services.heartbeat import heartbeat_topic
 from messages.rcon import RconWSConverter, rcon_command_topic, rcon_response_topic
 from pubsub.pubsub import PubSub
 from routes import login
@@ -27,21 +29,28 @@ async def shutdown():
 
 
 @app.get("/")
-async def root():
-    return {"message": "Hello World"}
+async def root(
+        request: Request,
+        templates: Annotated[Jinja2Templates, Depends(dependencies.get_templates)],
+):
+    return templates.TemplateResponse(
+        request=request, name="index.html", context={}
+    )
 
 
 @app.get("/hello/{name}")
 async def say_hello(
         name: str,
+        user: Annotated[str, Depends(get_current_user)]
 ):
-    return {"message": f"Hello {name}"}
+    return {"message": f"Hello {name}. Your username is {user}"}
 
 
 @app.websocket("/heartbeat")
 async def heartbeat(
         websocket: WebSocket,
-        pubsub: Annotated[PubSub, Depends(dependencies.get_pubsub)]
+        pubsub: Annotated[PubSub, Depends(dependencies.get_pubsub)],
+        heartbeat_converter: Annotated[HeartbeatConverter, Depends(dependencies.get_heartbeat_converter)],
 ):
     await WsProcessor(
         websocket,

@@ -1,17 +1,18 @@
 from datetime import timedelta
 from typing import Annotated
 
-from fastapi import Depends, status, HTTPException
-from fastapi.security import OAuth2PasswordBearer, OAuth2
+from fastapi import Depends, status, HTTPException, Cookie
+from fastapi.templating import Jinja2Templates
 
 from auth.jwt import JwtTokenUtils
 from config.configuration import Configuration, InMemoryDbConfiguration, SqliteDbConfiguration
 from dao.user_dao import UserDao
-from heartbeat.heartbeat import HeartbeatPublisher
+from messages.heartbeat import HeartbeatConverter
+from services.heartbeat import HeartbeatPublisher
 from pubsub.inmemory import InProcessPubSub
 from pubsub.pubsub import PubSub
 from rcon.echo_processor import EchoProcessor
-from service.service import ServiceLauncher
+from services.service import ServiceLauncher
 
 
 class Dependencies:
@@ -23,7 +24,8 @@ class Dependencies:
             config.access_token_secret,
             timedelta(minutes=config.access_token_expire_minutes)
         )
-        self._auth_scheme = oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+        self._templates = Jinja2Templates(directory="templates")
+        self._heartbeat_converter = HeartbeatConverter(self._templates)
 
         match config.db_configuration:
             case InMemoryDbConfiguration():
@@ -41,7 +43,7 @@ class Dependencies:
         self._service_launcher.launch(
             HeartbeatPublisher(
                 dependencies.get_pubsub(),
-                5
+                1,
             )
         )
 
@@ -68,8 +70,11 @@ class Dependencies:
     def get_jwt_utils(self) -> JwtTokenUtils:
         return self._jwt_utils
 
-    def get_auth_scheme(self) -> OAuth2:
-        return self._auth_scheme
+    def get_templates(self) -> Jinja2Templates:
+        return self._templates
+
+    def get_heartbeat_converter(self) -> HeartbeatConverter:
+        return self._heartbeat_converter
 
 
 configuration = Configuration()
@@ -77,13 +82,16 @@ dependencies = Dependencies(configuration)
 
 
 def get_current_user(
-        token: Annotated[str, Depends(dependencies.get_auth_scheme)],
         jwt_utils: Annotated[JwtTokenUtils, Depends(dependencies.get_jwt_utils)],
+        token: Annotated[str | None, Cookie()] = None,
 ) -> str:
     creds_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Unauthorized",
+        headers={"HX-Redirect": "/login"}
     )
+    if not token:
+        raise creds_exception
     username = jwt_utils.get_user(token)
     if username is None:
         raise creds_exception

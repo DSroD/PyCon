@@ -19,6 +19,7 @@ rcon_command_topic = TopicDescriptor[RconCommand](f"rcon_command")
 class RconResponse:
     issuing_user: str
     server_id: uuid.UUID
+    command: str
     response: str
 
 

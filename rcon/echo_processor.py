@@ -3,7 +3,7 @@ import uuid
 from messages.rcon import rcon_command_topic, RconResponse, rcon_response_topic
 from pubsub.filter import FieldEquals, FieldLength
 from pubsub.pubsub import PubSub
-from service.service import Service
+from services.service import Service
 
 
 class EchoProcessor(Service):
@@ -24,7 +24,8 @@ class EchoProcessor(Service):
                 published = RconResponse(
                     message.issuing_user,
                     message.server_id,
-                    message.command
+                    message.command,
+                    "ack"
                 )
                 self._pubsub.publish(rcon_response_topic, published)
 

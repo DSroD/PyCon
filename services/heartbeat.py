@@ -3,7 +3,7 @@ from datetime import datetime
 
 from messages.heartbeat import HeartbeatMessage, heartbeat_topic
 from pubsub.pubsub import PubSub
-from service.service import Service
+from services.service import Service
 
 
 class HeartbeatPublisher(Service):
@@ -17,7 +17,6 @@ class HeartbeatPublisher(Service):
     async def launch(self):
         while True:
             await asyncio.sleep(self._delay)
-            print("Beating!")
             hb = HeartbeatMessage(datetime.now())
             self._pubsub.publish(heartbeat_topic, hb)
 

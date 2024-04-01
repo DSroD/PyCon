@@ -1,0 +1,8 @@
+<div id="notifications" hx-swap-oob="afterbegin">
+    <div class="box packed {{ cls|default('plain', true) }}" remove-me="{{ remove_after|default('5', true) }}s">
+        {% if title %}
+            <strong class="block titlebar">Error</strong>
+        {% endif %}
+        {{ content }}
+    </div>
+</div>
