@@ -1,6 +1,8 @@
 import uuid
 from dataclasses import dataclass
 
+from starlette.templating import Jinja2Templates
+
 from messages.converter import HtmxConverter
 from pubsub.topic import TopicDescriptor
 
@@ -27,15 +29,21 @@ rcon_response_topic = TopicDescriptor[RconResponse](f"rcon_response")
 
 
 class RconWSConverter(HtmxConverter[RconCommand, RconResponse, dict]):
-    def __init__(self, server: uuid.UUID):
+    def __init__(self, server: uuid.UUID, user: str, templates: Jinja2Templates):
+        self._template = templates.get_template("rcon/response.html")
         self._server = server
+        self._user = user
 
     def convert_in(self, json: dict) -> RconCommand:
         return RconCommand(
-            json["user"],
+            self._user,
             self._server,
             json["command"]
         )
 
     def convert_out(self, message: RconResponse) -> str:
-        return f"{message.issuing_user}: {message.response}"
+        return self._template.render(
+            command=message.command,
+            response=message.response,
+            user=message.issuing_user,
+        )

@@ -10,24 +10,24 @@ class UserDaoImpl(UserDao):
         self._table_name = 'users'
         self._db_name = db_name
 
-    def initialize(self):
+    async def initialize(self):
         pass
 
     def _conn(self):
         return sqlite3.connect(self._db_name)
 
-    def get_by_username(self, username: str) -> Optional[User]:
+    async def get_by_username(self, username: str) -> Optional[User]:
         with self._conn() as conn:
             pass
 
-    def create_user(self, username: str, hashed_password: str) -> Optional[User]:
+    async def create_user(self, username: str, hashed_password: str) -> Optional[User]:
         pass
 
-    def delete_user(self, username: str) -> None:
+    async def delete_user(self, username: str) -> None:
         pass
 
-    def get_with_password(self, username: str) -> Optional[UserInDb]:
+    async def get_with_password(self, username: str) -> Optional[UserInDb]:
         pass
 
-    def set_disabled(self, username: str, disabled: bool) -> None:
+    async def set_disabled(self, username: str, disabled: bool) -> None:
         pass

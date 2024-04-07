@@ -16,16 +16,30 @@ class ServerDaoImpl(ServerDao):
                 "rcon_password": "test",
                 "description": "Test server description",
                 "uid": uuid.UUID("141a5347-abfc-4c13-8d10-bba20a261f69"),
+                "allowed_users": ["test"]
+            },
+            uuid.UUID("141a5347-abfc-4c13-8d10-bba20a251f69"): {
+                "name": "Test server 2",
+                "host": "localhost",
+                "port": 25564,
+                "rcon_port": 25568,
+                "rcon_password": "aaaa",
+                "description": "Test server 2 description",
+                "uid": uuid.UUID("141a5347-abfc-4c13-8d10-bba20a251f69"),
+                "allowed_users": ["test", "test2"]
             }
         }
 
-    def initialize(self):
+    async def initialize(self):
         pass
 
-    def get_by_uid(self, uid: uuid.UUID) -> Optional[Server]:
+    async def get_user_servers(self, username: str) -> List[Server]:
+        return [Server(**server) for server in self._servers.values() if username in server["allowed_users"]]
+
+    async def get_by_uid(self, uid: uuid.UUID) -> Optional[Server]:
         if uid in self._servers:
             return Server(**self._servers[uid])
         return None
 
-    def get_all(self) -> List[Server]:
+    async def get_all(self) -> List[Server]:
         return list(map(lambda s: Server(**s), self._servers.values()))

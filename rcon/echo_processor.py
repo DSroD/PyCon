@@ -25,7 +25,7 @@ class EchoProcessor(Service):
                     message.issuing_user,
                     message.server_id,
                     message.command,
-                    "ack"
+                    f"ack: {message.command}"
                 )
                 self._pubsub.publish(rcon_response_topic, published)
 

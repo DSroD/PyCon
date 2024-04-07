@@ -7,7 +7,7 @@ from models.user import User, UserInDb
 
 class UserDao(Dao, ABC):
     @abstractmethod
-    def get_all(self) -> List[User]:
+    async def get_all(self) -> List[User]:
         """
         Returns list of all users
         :return:
@@ -15,7 +15,7 @@ class UserDao(Dao, ABC):
         pass
 
     @abstractmethod
-    def get_by_username(self, username: str) -> Optional[User]:
+    async def get_by_username(self, username: str) -> Optional[User]:
         """
         Returns user by username
         :param username:
@@ -24,7 +24,7 @@ class UserDao(Dao, ABC):
         pass
 
     @abstractmethod
-    def create_user(self, username: str, hashed_password: str) -> Optional[User]:
+    async def create_user(self, username: str, hashed_password: str) -> Optional[User]:
         """
         Creates new user (if no other with same username exists)
         :param username:
@@ -34,7 +34,7 @@ class UserDao(Dao, ABC):
         pass
 
     @abstractmethod
-    def delete_user(self, username: str) -> None:
+    async def delete_user(self, username: str) -> None:
         """
         Removes user by username (if exists)
         :param username:
@@ -43,7 +43,7 @@ class UserDao(Dao, ABC):
         pass
 
     @abstractmethod
-    def get_with_password(self, username: str) -> Optional[UserInDb]:
+    async def get_with_password(self, username: str) -> Optional[UserInDb]:
         """
         Gets hashed password of a user (if exists)
         :param username:
@@ -52,5 +52,5 @@ class UserDao(Dao, ABC):
         pass
 
     @abstractmethod
-    def set_disabled(self, username: str, disabled: bool) -> None:
+    async def set_disabled(self, username: str, disabled: bool) -> None:
         pass

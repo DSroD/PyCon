@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="https://unpkg.com/missing.css@1.1.1">
+    <script src="https://unpkg.com/htmx.org@1.9.11"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.11/dist/ext/class-tools.js"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.11/dist/ext/remove-me.js"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.11/dist/ext/ws.js"></script>
+    <title>Title</title>
+</head>
+<body>
+<div class="sidebar-layout fullscreen">
+    <header hx-push-url="true" hx-swap="none">
+        <h1><a class="allcaps" hx-get="/">PyCon</a></h1>
+        <ul role="list">
+            {% if user %}
+            <li><a hx-get="/servers">Servers</a></li>
+            <li><a hx-get="/logout">Log out</a></li>
+            {% else %}
+            <li><a hx-get="/login">Login</a></li>
+            {% endif %}
+        </ul>
+    </header>
+
+    <div class="container">
+        {% if content_url|default(False) %}
+        <div id="content" hx-get="{{ content_url }}" hx-trigger="load" hx-target="this" hx-swap="otuerHTML">
+
+        </div>
+        {% else %}
+        <div id="content">
+
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if user|default(False) %}
+<section class="fixed top right tool-bar padding">
+    <span>Logged in as: {{ user }}</span>
+    <hr aria-orientation="vertical">
+    <span hx-ext="ws" ws-connect="/heartbeat" id="heartbeat"></span>
+</section>
+{% endif %}
+
+<div id="notifications" class="block fixed bottom right padding padding-block" hx-ext="remove-me">
+
+</div>
+
+</body>
+</html>

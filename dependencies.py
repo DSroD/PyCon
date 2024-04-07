@@ -1,13 +1,16 @@
+import uuid
 from datetime import timedelta
-from typing import Annotated
+from typing import Annotated, Optional
 
-from fastapi import Depends, status, HTTPException, Cookie
+from fastapi import Depends, Cookie
 from fastapi.templating import Jinja2Templates
 
 from auth.jwt import JwtTokenUtils
 from config.configuration import Configuration, InMemoryDbConfiguration, SqliteDbConfiguration
+from dao.server_dao import ServerDao
 from dao.user_dao import UserDao
 from messages.heartbeat import HeartbeatConverter
+from messages.rcon import RconWSConverter
 from services.heartbeat import HeartbeatPublisher
 from pubsub.inmemory import InProcessPubSub
 from pubsub.pubsub import PubSub
@@ -36,9 +39,9 @@ class Dependencies:
                 from dao.sqlite import user_dao
                 self._user_dao = user_dao.UserDaoImpl(db_name)
 
-    def on_start(self):
-        self._user_dao.initialize()
-        self._server_dao.initialize()
+    async def on_start(self):
+        await self._user_dao.initialize()
+        await self._server_dao.initialize()
 
         self._service_launcher.launch(
             HeartbeatPublisher(
@@ -47,7 +50,10 @@ class Dependencies:
             )
         )
 
-        for server in self._server_dao.get_all():
+        all_servers = await self._server_dao.get_all()
+
+        # Initialize all server rcon processors
+        for server in all_servers:
             self._service_launcher.launch(
                 EchoProcessor(
                     dependencies.get_pubsub(),
@@ -60,6 +66,9 @@ class Dependencies:
 
     def get_user_dao(self) -> UserDao:
         return self._user_dao
+
+    def get_server_dao(self) -> ServerDao:
+        return self._server_dao
 
     def get_pubsub(self) -> PubSub:
         return self._pubsub
@@ -76,24 +85,30 @@ class Dependencies:
     def get_heartbeat_converter(self) -> HeartbeatConverter:
         return self._heartbeat_converter
 
+    def get_base_template_name(self) -> str:
+        return self._config.base_template_name
+
 
 configuration = Configuration()
+service_launcher = ServiceLauncher()
 dependencies = Dependencies(configuration)
 
 
 def get_current_user(
         jwt_utils: Annotated[JwtTokenUtils, Depends(dependencies.get_jwt_utils)],
-        token: Annotated[str | None, Cookie()] = None,
-) -> str:
-    creds_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Unauthorized",
-        headers={"HX-Redirect": "/login"}
-    )
-    if not token:
-        raise creds_exception
-    username = jwt_utils.get_user(token)
-    if username is None:
-        raise creds_exception
-    else:
-        return username
+        token: Annotated[Optional[str], Cookie()] = None,
+) -> Optional[str]:
+    if token:
+        return jwt_utils.get_user(token)
+    return None
+
+
+def get_rcon_converter_factory(
+        templates: Annotated[Jinja2Templates, Depends(dependencies.get_templates)],
+        user: Annotated[Optional[str], Depends(get_current_user)],
+):
+    def inner(
+            server_id: uuid.UUID,
+    ):
+        return RconWSConverter(server_id, user, templates)
+    return inner

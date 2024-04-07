@@ -1,0 +1,16 @@
+<div id="content" hx-swap-oob="true">
+    <div hx-ext="ws" ws-connect="/rcon/{{ server.uid }}">
+        <h1>{{ server.name }}</h1>
+        <p>{{ server.description }}</p>
+
+        <form class="tool-bar" hx-on="htmx:wsAfterSend: this.reset()" ws-send>
+            <label>Command:
+                <input type="text" name="command" placeholder="command">
+            </label>
+        </form>
+
+        <div id="rcon" class="box block flow-gap overflow:scroll">
+
+        </div>
+    </div>
+</div>

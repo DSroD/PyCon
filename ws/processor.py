@@ -28,6 +28,7 @@ class Processor[TMessageIn, TMessageOut, TDataIn]:
             if not self._publish_topic:
                 continue
             converted = self._converter.convert_in(message)
+            print(f"received {converted}")
             self._pubsub.publish(self._publish_topic, converted)
 
     async def _write(self, subscription: Subscription):
@@ -53,6 +54,10 @@ class Processor[TMessageIn, TMessageOut, TDataIn]:
             await self._websocket.close()
             raise
         except WebSocketDisconnect:
+            print("Disconnected")
+            raise
+        except Exception as ex:
+            print(ex)
             raise
         finally:
             if write_task:
