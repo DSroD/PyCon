@@ -1,16 +1,12 @@
-import uuid
-from typing import Annotated
-
-from fastapi import FastAPI, Depends
-from fastapi.websockets import WebSocket
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 from dependencies import dependencies
-from messages.rcon import RconWSConverter, rcon_command_topic, rcon_response_topic
-from pubsub.pubsub import PubSub
 from routes import login, index, servers
-from ws.processor import Processor as WsProcessor
 
 app = FastAPI()
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 app.include_router(login.router)
 app.include_router(index.router)

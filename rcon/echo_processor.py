@@ -11,6 +11,7 @@ class EchoProcessor(Service):
         self._pubsub = pubsub
         self._server_id = server_id
 
+    @property
     def name(self) -> str:
         return f"echo_processor_{self._server_id}"
 
@@ -18,7 +19,8 @@ class EchoProcessor(Service):
         with self._pubsub.subscribe(
             rcon_command_topic,
             FieldEquals(lambda msg: msg.server_id, self._server_id) &
-            FieldLength(lambda msg: msg.command, 30, 'max')
+            FieldLength(lambda msg: msg.command, 64, FieldLength.Mode.MAX) &
+            FieldLength(lambda msg: msg.command, 1, FieldLength.Mode.MIN)
         ) as subscription:
             async for message in subscription:
                 published = RconResponse(

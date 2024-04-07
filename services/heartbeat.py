@@ -7,6 +7,7 @@ from services.service import Service
 
 
 class HeartbeatPublisher(Service):
+    @property
     def name(self) -> str:
         return "HeartbeatPublisher"
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from enum import Enum
 from typing import Callable, Literal
 
 
@@ -64,7 +65,12 @@ class IsType[TMessage](PubSubFilter[TMessage]):
 
 
 class FieldLength[TMessage, TField](PubSubFilter[TMessage]):
-    def __init__(self, selector: Callable[[TMessage], TField], length: int, mode: Literal['min', 'eq', 'max'] = 'eq'):
+    class Mode(Enum):
+        EQ = 0,
+        MIN = 1,
+        MAX = 2,
+
+    def __init__(self, selector: Callable[[TMessage], TField], length: int, mode: FieldLength.Mode = Mode.EQ):
         self._selector = selector
         self._length = length
         self._mode = mode
@@ -72,10 +78,10 @@ class FieldLength[TMessage, TField](PubSubFilter[TMessage]):
     def accept(self, message: TMessage) -> bool:
         field = self._selector(message)
         length = len(field)
-        if self._mode == 'eq':
+        if self._mode == self.Mode.EQ:
             return length == self._length
-        if self._mode == 'min':
-            return length > self._length
-        if self._mode == 'max':
-            return length < self._length
+        if self._mode == self.Mode.MIN:
+            return length >= self._length
+        if self._mode == self.Mode.MAX:
+            return length <= self._length
         return False

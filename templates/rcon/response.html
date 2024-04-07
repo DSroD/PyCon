@@ -1,5 +1,6 @@
 <div id="rcon" hx-swap-oob="afterbegin">
-    <div>
-        <span class="chip">{{ user }}</span> <span>{{ response }}</span>
+    <div class="margin-block-end">
+        <div class="chip ">[{{ timestamp }}] {{ user }} issued command: {{ command }}</div>
+        <div class="chip ok">{{ response }}</div>
     </div>
 </div>

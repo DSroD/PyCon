@@ -1,5 +1,6 @@
 import uuid
 from dataclasses import dataclass
+from datetime import datetime
 
 from starlette.templating import Jinja2Templates
 
@@ -46,4 +47,5 @@ class RconWSConverter(HtmxConverter[RconCommand, RconResponse, dict]):
             command=message.command,
             response=message.response,
             user=message.issuing_user,
+            timestamp=datetime.now().strftime("%H:%M:%S")
         )

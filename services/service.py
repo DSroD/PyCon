@@ -5,6 +5,7 @@ from asyncio import Task
 
 
 class Service(ABC):
+    @property
     @abstractmethod
     def name(self) -> str:
         pass
@@ -32,7 +33,7 @@ class ServiceLauncher:
                 await service.stop()
                 self._services.pop(task_id)
                 # TODO: logger
-                print(f"Service {service.name()} stopped.")
+                print(f"Service {service.name} stopped.")
                 raise
 
         task = asyncio.create_task(handled())
