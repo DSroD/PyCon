@@ -107,8 +107,8 @@ def get_rcon_converter_factory(
         templates: Annotated[Jinja2Templates, Depends(dependencies.get_templates)],
         user: Annotated[Optional[str], Depends(get_current_user)],
 ):
-    def inner(
+    def create(
             server_id: uuid.UUID,
     ):
         return RconWSConverter(server_id, user, templates)
-    return inner
+    return create
