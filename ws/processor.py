@@ -4,6 +4,7 @@ from typing import Optional
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from messages.converter import HtmxConverter
+from pubsub.filter import PubSubFilter
 from pubsub.pubsub import PubSub, Subscription
 from pubsub.topic import TopicDescriptor
 
@@ -16,12 +17,14 @@ class Processor[TMessageIn, TMessageOut, TDataIn]:
             pubsub: PubSub,
             publish_topic: Optional[TopicDescriptor[TMessageIn]],
             subscribe_topic: Optional[TopicDescriptor[TMessageOut]],
+            subscribe_filter: Optional[PubSubFilter] = None,
     ):
         self._websocket = websocket
         self._converter = converter
         self._pubsub = pubsub
         self._publish_topic = publish_topic
         self._subscribe_topic = subscribe_topic
+        self._subscribe_filter = subscribe_filter
 
     async def _read(self):
         async for message in self._websocket.iter_json():
@@ -45,7 +48,7 @@ class Processor[TMessageIn, TMessageOut, TDataIn]:
         await self._websocket.accept()
         write_task = None
         if self._subscribe_topic:
-            subscription = self._pubsub.subscribe(self._subscribe_topic)
+            subscription = self._pubsub.subscribe(self._subscribe_topic, self._subscribe_filter)
             write_task = asyncio.create_task(self._write(subscription))
         try:
             await self._read()

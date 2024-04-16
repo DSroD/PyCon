@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Callable, Literal
+from typing import Callable
 
 
 class PubSubFilter[TMessage](ABC):
@@ -85,3 +85,13 @@ class FieldLength[TMessage, TField](PubSubFilter[TMessage]):
         if self._mode == self.Mode.MAX:
             return length <= self._length
         return False
+
+
+class FieldContains[TMessage, TValue, TField: list](PubSubFilter[TMessage]):
+    def __init__(self, selector: Callable[[TMessage], TField], value: TValue):
+        self._selector = selector
+        self._value = value
+
+    def accept(self, message: TMessage) -> bool:
+        field = self._selector(message)
+        return self._value in field

@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Never, Any
 
-from starlette.templating import Jinja2Templates
+from fastapi.templating import Jinja2Templates
 
 from messages.converter import HtmxConverter
 from pubsub.topic import TopicDescriptor

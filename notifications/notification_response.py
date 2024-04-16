@@ -5,7 +5,9 @@ from fastapi import Depends
 from htmx.htmx_response import HtmxResponse, htmx_response_factory
 
 
-def notification_response_factory(response_factory: Annotated[type[HtmxResponse], Depends(htmx_response_factory)]):
+def notification_response_factory(
+        response_factory: Annotated[type[HtmxResponse], Depends(htmx_response_factory)],
+):
     def notification_response(
             msg: str,
             cls: Optional[str] = None,

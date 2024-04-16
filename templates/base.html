@@ -38,10 +38,11 @@
 </div>
 
 {% if user|default(False) %}
-<section class="fixed top right tool-bar padding">
+<section hx-ext="ws" class="fixed top right tool-bar padding">
     <span>Logged in as: {{ user }}</span>
     <hr aria-orientation="vertical">
-    <span hx-ext="ws" ws-connect="/heartbeat" id="heartbeat"></span>
+    <span ws-connect="/heartbeat" id="heartbeat"></span>
+    <div hidden ws-connect="/notifications" id="notifications-ws"></div>
 </section>
 {% endif %}
 

@@ -1,6 +1,7 @@
 import asyncio
 import uuid
 
+from messages.notifications import notification_topic, NotificationMessage
 from messages.rcon import rcon_command_topic, rcon_response_topic
 from models.server import Server
 from pubsub.filter import FieldEquals
@@ -58,6 +59,14 @@ class RconProcessor(Service):
             lambda msg: self._pubsub.publish(
                 rcon_response_topic(self._server_id),
                 msg
+            ),
+            lambda err_msg: self._pubsub.publish(
+                notification_topic,
+                NotificationMessage(
+                    audience="all",
+                    message=err_msg,
+                    type=NotificationMessage.NotificationType.Error
+                )
             )
         )
 

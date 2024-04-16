@@ -87,7 +87,11 @@ class RconClient:
             )
         )
 
-    async def read(self, on_message: Callable[[RconResponse], None]):
+    async def read(
+            self,
+            on_message: Callable[[RconResponse], None],
+            notify_error: Callable[[str], None] | None = None,
+    ):
         while True:
             next_packet = await self._connection.read()
             match next_packet:
@@ -96,9 +100,11 @@ class RconClient:
                         on_message(self._process_command_response(request_id))
                     else:
                         self._responses[request_id].append(payload)
+                case UnprocessableResponse(_, message):
+                    if notify_error:
+                        notify_error(message)
 
                 case _:
-                    # TODO: Warn about packet mismatch
                     pass
 
     def _process_command_response(self, ending_id: int) -> RconResponse:

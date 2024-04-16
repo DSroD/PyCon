@@ -10,6 +10,7 @@ from config.configuration import Configuration, InMemoryDbConfiguration, SqliteD
 from dao.server_dao import ServerDao
 from dao.user_dao import UserDao
 from messages.heartbeat import HeartbeatConverter
+from messages.notifications import NotificationConverter
 from messages.rcon import RconWSConverter
 from services.heartbeat import HeartbeatPublisher
 from pubsub.inmemory import InProcessPubSub
@@ -29,6 +30,7 @@ class Dependencies:
         )
         self._templates = Jinja2Templates(directory="templates")
         self._heartbeat_converter = HeartbeatConverter(self._templates)
+        self._notification_converter = NotificationConverter(self._templates)
 
         match config.db_configuration:
             case InMemoryDbConfiguration():
@@ -84,6 +86,9 @@ class Dependencies:
 
     def get_heartbeat_converter(self) -> HeartbeatConverter:
         return self._heartbeat_converter
+
+    def get_notifications_converter(self) -> NotificationConverter:
+        return self._notification_converter
 
     def get_base_template_name(self) -> str:
         return self._config.base_template_name
