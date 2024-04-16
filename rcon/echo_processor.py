@@ -17,19 +17,17 @@ class EchoProcessor(Service):
 
     async def launch(self):
         with self._pubsub.subscribe(
-            rcon_command_topic,
-            FieldEquals(lambda msg: msg.server_id, self._server_id) &
+            rcon_command_topic(self._server_id),
             FieldLength(lambda msg: msg.command, 64, FieldLength.Mode.MAX) &
             FieldLength(lambda msg: msg.command, 1, FieldLength.Mode.MIN)
         ) as subscription:
             async for message in subscription:
                 published = RconResponse(
                     message.issuing_user,
-                    message.server_id,
                     message.command,
-                    f"ack: {message.command}"
+                    f"ack: {message.command}",
                 )
-                self._pubsub.publish(rcon_response_topic, published)
+                self._pubsub.publish(rcon_response_topic(self._server_id), published)
 
     async def stop(self):
         pass

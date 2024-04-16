@@ -11,22 +11,22 @@ from pubsub.topic import TopicDescriptor
 @dataclass(eq=True, frozen=True)
 class RconCommand:
     issuing_user: str
-    server_id: uuid.UUID
     command: str
 
 
-rcon_command_topic = TopicDescriptor[RconCommand](f"rcon_command")
+def rcon_command_topic(server_uuid: uuid.UUID) -> TopicDescriptor[RconCommand]:
+    return TopicDescriptor[RconCommand](f"rcon_command/{server_uuid}")
 
 
 @dataclass(eq=True, frozen=True)
 class RconResponse:
     issuing_user: str
-    server_id: uuid.UUID
     command: str
     response: str
 
 
-rcon_response_topic = TopicDescriptor[RconResponse](f"rcon_response")
+def rcon_response_topic(server_uuid: uuid.UUID) -> TopicDescriptor[RconResponse]:
+    return TopicDescriptor[RconResponse](f"rcon_response/{server_uuid}")
 
 
 class RconWSConverter(HtmxConverter[RconCommand, RconResponse, dict]):
@@ -38,7 +38,6 @@ class RconWSConverter(HtmxConverter[RconCommand, RconResponse, dict]):
     def convert_in(self, json: dict) -> RconCommand:
         return RconCommand(
             self._user,
-            self._server,
             json["command"]
         )
 

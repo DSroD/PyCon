@@ -66,6 +66,6 @@ async def command(
         websocket,
         converter,
         pubsub,
-        rcon_command_topic,
-        rcon_response_topic,
+        rcon_command_topic(server_uid),
+        rcon_response_topic(server_uid),
     ).process()

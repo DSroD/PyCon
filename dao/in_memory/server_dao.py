@@ -9,6 +9,7 @@ class ServerDaoImpl(ServerDao):
     def __init__(self):
         self._servers = {
             uuid.UUID("141a5347-abfc-4c13-8d10-bba20a261f69"): {
+                "type": Server.Type.MINECRAFT_SERVER,
                 "name": "Test server",
                 "host": "localhost",
                 "port": 25565,
@@ -19,6 +20,7 @@ class ServerDaoImpl(ServerDao):
                 "allowed_users": ["test"]
             },
             uuid.UUID("141a5347-abfc-4c13-8d10-bba20a251f69"): {
+                "type": Server.Type.SOURCE_SERVER,
                 "name": "Test server 2",
                 "host": "localhost",
                 "port": 25564,
