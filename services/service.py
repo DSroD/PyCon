@@ -2,6 +2,9 @@ import asyncio
 import uuid
 from abc import ABC, abstractmethod
 from asyncio import Task
+from typing import Optional
+
+from dependencies import Dependencies
 
 
 class Service(ABC):
@@ -20,10 +23,11 @@ class Service(ABC):
 
 
 class ServiceLauncher:
-    def __init__(self):
+    def __init__(self, ioc: Dependencies):
+        self._ioc = ioc
         self._services: dict[uuid.UUID, Task] = dict()
 
-    def launch(self, service: Service):
+    def launch(self, service: Service, register_as: Optional[type[Service]] = None):
         task_id = uuid.uuid4()
 
         async def handled():
@@ -38,6 +42,9 @@ class ServiceLauncher:
 
         task = asyncio.create_task(handled())
         self._services[task_id] = task
+
+        if register_as:
+            self._ioc.register(service, register_as)
 
     def stop(self):
         for task in self._services.values():

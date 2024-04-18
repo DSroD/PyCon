@@ -2,7 +2,7 @@ from typing import Annotated, Optional
 
 from fastapi import Depends
 
-from htmx.htmx_response import HtmxResponse, htmx_response_factory
+from htmx import HtmxResponse, htmx_response_factory
 
 
 def notification_response_factory(

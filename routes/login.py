@@ -5,9 +5,9 @@ from fastapi import APIRouter, Depends, Form
 from auth.hashing import verify_password
 from auth.jwt import JwtTokenUtils
 from dao.user_dao import UserDao
-from dependencies import dependencies, get_current_user
-from htmx.htmx_response import htmx_response_factory, HtmxResponse
-from notifications.notification_response import notification_response_factory
+from dependencies import get_current_user, ioc
+from htmx import htmx_response_factory, HtmxResponse
+from notifications import notification_response_factory
 
 router = APIRouter()
 
@@ -18,8 +18,8 @@ async def login_post(
         notification_factory: Annotated[Callable, Depends(notification_response_factory)],
         username: Annotated[str, Form()],
         password: Annotated[str, Form()],
-        user_dao: Annotated[UserDao, Depends(dependencies.get_user_dao)],
-        token_factory: Annotated[JwtTokenUtils, Depends(dependencies.get_jwt_utils)],
+        user_dao: Annotated[UserDao, Depends(ioc.get(UserDao))],
+        token_factory: Annotated[JwtTokenUtils, Depends(ioc.get(JwtTokenUtils))],
 ):
     user = await user_dao.get_with_password(username)
     if user and not user.disabled and verify_password(password, user.hashed_password):

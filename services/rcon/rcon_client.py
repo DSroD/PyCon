@@ -9,11 +9,11 @@ from typing import Callable, Optional, Coroutine
 
 from messages.rcon import RconCommand, RconResponse
 from models.server import Server
-from rcon.encoding import encoding
-from rcon.packets import ResponseRconPacket, LoginPacket, OutgoingRconPacket, decode, LoginSuccessResponse, \
+from services.rcon.encoding import encoding
+from services.rcon.packets import ResponseRconPacket, LoginPacket, OutgoingRconPacket, decode, LoginSuccessResponse, \
     LoginFailedResponse, UnprocessableResponse, CommandPacket, CommandEndPacket, CommandResponse
-from rcon.rcon_client_errors import RequestIdMismatchError, InvalidPasswordError, InvalidPacketError
-from rcon.request_id import RequestIdProvider
+from services.rcon.rcon_client_errors import RequestIdMismatchError, InvalidPasswordError, InvalidPacketError
+from services.rcon.request_id import RequestIdProvider
 from utils.retry import retry_jitter_exponential_backoff as retry
 
 
@@ -141,7 +141,7 @@ class RconClientManager:
     async def __aenter__(self) -> RconClient:
         print(f"Connecting to {self._host}:{self._rcon_port}")
         await retry(
-            self._connect(),
+            self._connect,
             (
                 RequestIdMismatchError,
                 InvalidPasswordError,

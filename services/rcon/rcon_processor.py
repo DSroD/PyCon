@@ -2,11 +2,12 @@ import asyncio
 
 from messages.notifications import notification_topic, NotificationMessage
 from messages.rcon import rcon_command_topic, rcon_response_topic
+from messages.server_status import server_status_topic, RconConnected, RconDisconnected
 from models.server import Server
 from pubsub.filter import FieldEquals
-from pubsub.pubsub import PubSub, Subscription
-from rcon.rcon_client import RconClientManager, RconClient
-from rcon.request_id import RequestIdProvider
+from pubsub.pubsub import PubSub
+from services.rcon.rcon_client import RconClientManager, RconClient
+from services.rcon.request_id import RequestIdProvider
 from services.service import Service
 
 
@@ -32,8 +33,14 @@ class RconProcessor(Service):
             self._server.rcon_password,
             on_failure=self._notify_connection_failure
         ) as client:
+            self._pubsub.publish(
+                server_status_topic,
+                RconConnected(self._server.uid)
+            )
+            write_task = asyncio.create_task(self._write(client))
+            read_task = asyncio.create_task(self._read(client))
             done, pending = await asyncio.wait(
-                [self._write(client), self._read(client)],
+                [write_task, read_task],
                 return_when=asyncio.FIRST_COMPLETED
             )
 
@@ -76,4 +83,7 @@ class RconProcessor(Service):
         )
 
     async def stop(self):
-        pass
+        self._pubsub.publish(
+            server_status_topic,
+            RconDisconnected(self._server.uid)
+        )

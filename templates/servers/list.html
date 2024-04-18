@@ -1,6 +1,6 @@
 <div id="content" hx-swap-oob="true">
     {% for server in servers %}
-    <div class="box">
+    <div class="box {{ 'plain' if ((statuses[server.uid]).rcon_connected) else 'warn' }}">
         <strong class="block titlebar">
             <a hx-get="/servers/{{ server.uid }}">{{ server.name }}</a>
         </strong>

@@ -1,15 +1,15 @@
 import asyncio
 from typing import Optional
 
-from starlette.websockets import WebSocket, WebSocketDisconnect
+from fastapi.websockets import WebSocket
 
 from messages.converter import HtmxConverter
 from pubsub.filter import PubSubFilter
-from pubsub.pubsub import PubSub, Subscription
+from pubsub.pubsub import PubSub
 from pubsub.topic import TopicDescriptor
 
 
-class Processor[TMessageIn, TMessageOut, TDataIn]:
+class WebsocketProcessor[TMessageIn, TMessageOut, TDataIn]:
     def __init__(
             self,
             websocket: WebSocket,
@@ -47,13 +47,24 @@ class Processor[TMessageIn, TMessageOut, TDataIn]:
         :return:
         """
         await self._websocket.accept()
+        write_task = asyncio.create_task(self._write())
+        read_task = asyncio.create_task(self._read())
+        try:
+            done, pending = await asyncio.wait(
+                [write_task, read_task],
+                return_when=asyncio.FIRST_EXCEPTION
+            )
 
-        (done, pending) = await asyncio.wait(
-            [self._write(), self._read()],
-            return_when=asyncio.FIRST_EXCEPTION
-        )
+            for task in pending:
+                task.cancel()
 
-        print("ending...")
-        for task in pending:
-            task.cancel()
+        except asyncio.CancelledError:
+            await self._websocket.close()
+            raise
+
+        finally:
+            write_task.cancel()
+            read_task.cancel()
+
+
 
