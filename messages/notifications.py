@@ -45,7 +45,7 @@ class NotificationConverter(HtmxConverter[Never, NotificationMessage, Any]):
     def convert_out(self, message: NotificationMessage):
         cls = cls_conversions.get(message.type, None)
         return self._template.render(
-            msg=message.message,
+            content=message.message,
             cls=cls,
             remove_after=message.remove_after
         )

@@ -135,7 +135,7 @@ decoders: dict[int, Callable[[int, bytes], ResponseRconPacket]] = {
 }
 
 
-def decode(packet_type: int, request_id: int, padding: bytes, payload: bytes) -> ResponseRconPacket:
+def decode(packet_type: int, request_id: int, payload: bytes, padding: bytes) -> ResponseRconPacket:
     if padding != b"\x00\x00":
         return UnprocessableResponse(request_id, "Padding mismatch")
     if packet_type not in decoders:

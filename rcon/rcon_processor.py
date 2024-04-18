@@ -1,5 +1,4 @@
 import asyncio
-import uuid
 
 from messages.notifications import notification_topic, NotificationMessage
 from messages.rcon import rcon_command_topic, rcon_response_topic
@@ -15,16 +14,14 @@ class RconProcessor(Service):
     def __init__(
             self,
             pubsub: PubSub,
-            server_id: uuid.UUID,
             server: Server,
     ):
         self._pubsub = pubsub
-        self._server_id = server_id
         self._server = server
 
     @property
     def name(self) -> str:
-        return f"rcon_processor_{self._server_id}"
+        return f"rcon_processor_{self._server.uid}"
 
     async def launch(self):
         async with RconClientManager(
@@ -33,31 +30,29 @@ class RconProcessor(Service):
             self._server.host,
             self._server.rcon_port,
             self._server.rcon_password,
+            on_failure=self._notify_connection_failure
         ) as client:
-
-            sub = self._pubsub.subscribe(
-                rcon_command_topic(self._server_id),
-                FieldEquals(lambda msg: msg.server_id, self._server_id)
-            )
-
             done, pending = await asyncio.wait(
-                [self._write(client, sub), self._read(client)],
+                [self._write(client), self._read(client)],
                 return_when=asyncio.FIRST_COMPLETED
             )
 
+            print("Rcon processor finished.")
             for task in pending:
                 task.cancel()
 
-    @staticmethod
-    async def _write(client: RconClient, subscription: Subscription):
-        with subscription as sub:
+    async def _write(self, client: RconClient):
+        with self._pubsub.subscribe(
+                rcon_command_topic(self._server.uid),
+                FieldEquals(lambda msg: msg.server_id, self._server.uid)
+        ) as sub:
             async for cmd in sub:
                 await client.send_command(cmd)
 
     async def _read(self, client: RconClient):
         await client.read(
             lambda msg: self._pubsub.publish(
-                rcon_response_topic(self._server_id),
+                rcon_response_topic(self._server.uid),
                 msg
             ),
             lambda err_msg: self._pubsub.publish(
@@ -65,8 +60,18 @@ class RconProcessor(Service):
                 NotificationMessage(
                     audience="all",
                     message=err_msg,
-                    type=NotificationMessage.NotificationType.Error
+                    type=NotificationMessage.NotificationType.Error,
                 )
+            )
+        )
+
+    async def _notify_connection_failure(self):
+        self._pubsub.publish(
+            notification_topic,
+            NotificationMessage(
+                audience="all",
+                message=f"Failed to connect to {self._server.host}:{self._server.rcon_port}",
+                type=NotificationMessage.NotificationType.Warning,
             )
         )
 

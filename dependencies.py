@@ -12,6 +12,7 @@ from dao.user_dao import UserDao
 from messages.heartbeat import HeartbeatConverter
 from messages.notifications import NotificationConverter
 from messages.rcon import RconWSConverter
+from rcon.rcon_processor import RconProcessor
 from services.heartbeat import HeartbeatPublisher
 from pubsub.inmemory import InProcessPubSub
 from pubsub.pubsub import PubSub
@@ -57,9 +58,9 @@ class Dependencies:
         # Initialize all server rcon processors
         for server in all_servers:
             self._service_launcher.launch(
-                EchoProcessor(
+                RconProcessor(
                     dependencies.get_pubsub(),
-                    server.uid,
+                    server
                 )
             )
 
