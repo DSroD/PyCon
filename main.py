@@ -15,7 +15,7 @@ from pubsub.inmemory import InProcessPubSub
 from pubsub.pubsub import PubSub
 from routes import login, index, servers
 from services.heartbeat import HeartbeatPublisher
-from services.rcon.rcon_processor import RconProcessor
+from services.rcon.rcon_service import RconService
 from services.server_status import ServerStatusService
 from services.service import ServiceLauncher
 from templating import TemplateProvider
@@ -74,7 +74,7 @@ async def startup():
 
     for server in all_servers:
         service_launcher.launch(
-            RconProcessor(pubsub, server)
+            RconService(pubsub, server)
         )
 
 

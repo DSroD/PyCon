@@ -28,6 +28,3 @@ async def retry_jitter_exponential_backoff(
                 await on_failure()
             await asyncio.sleep(delay_seconds)
             continue
-        except Exception as e:
-            print(e)
-            raise

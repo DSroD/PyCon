@@ -91,26 +91,23 @@ class CommandEndPacket(OutgoingRconPacket):
         return self._rid
 
 
+@dataclass(frozen=True, eq=True)
 class LoginSuccessResponse:
-    def __init__(self, request_id: int):
-        self._rid = request_id
-
-    @property
-    def request_id(self):
-        return self._rid
+    request_id: int
 
 
+@dataclass(frozen=True, eq=True)
 class LoginFailedResponse:
     pass
 
 
-@dataclass
+@dataclass(frozen=True, eq=True)
 class CommandResponse:
     request_id: int
     payload: bytes
 
 
-@dataclass
+@dataclass(frozen=True, eq=True)
 class UnprocessableResponse:
     request_id: int
     message: str

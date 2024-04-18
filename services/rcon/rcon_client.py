@@ -88,7 +88,7 @@ class RconClient:
     async def read(
             self,
             on_message: Callable[[RconResponse], None],
-            notify_error: Callable[[str], None] | None = None,
+            on_error: Callable[[str], None] | None = None,
     ):
         while True:
             next_packet = await self._connection.read()
@@ -99,8 +99,8 @@ class RconClient:
                     else:
                         self._responses[request_id].append(payload)
                 case UnprocessableResponse(_, message):
-                    if notify_error:
-                        notify_error(message)
+                    if on_error:
+                        on_error(message)
 
                 case _:
                     pass
