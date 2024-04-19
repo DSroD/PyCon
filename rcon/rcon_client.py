@@ -5,22 +5,20 @@ import struct
 from asyncio import StreamReader, StreamWriter
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Callable
-
-from aiochannel import Channel
+from typing import Callable, Optional, Coroutine
 
 from messages.rcon import RconCommand, RconResponse
 from models.server import Server
 from rcon.encoding import encoding
-from rcon.packets import ResponseRconPacket, LoginPacket, OutgoingRconPacket, decode, LoginSuccessResponse, \
-    LoginFailedResponse, UnprocessableResponse, CommandPacket, CommandEndPacket, CommandResponse
+from rcon.packets import RconResponsePacket, LoginPacket, OutgoingRconPacket, LoginSuccessResponse, \
+    LoginFailedResponse, UnprocessableResponse, CommandPacket, CommandEndPacket, CommandResponse, next_packet
 from rcon.rcon_client_errors import RequestIdMismatchError, InvalidPasswordError, InvalidPacketError
 from rcon.request_id import RequestIdProvider
 from utils.retry import retry_jitter_exponential_backoff as retry
 
 
 class RconConnection:
-    """Connection to the RCON server"""
+    """Connection proxy to the RCON server"""
     def __init__(
             self,
             reader: StreamReader,
@@ -35,15 +33,10 @@ class RconConnection:
         self._writer.write(data.encode(self._payload_encoding))
         await self._writer.drain()
 
-    async def read(self) -> ResponseRconPacket:
-        len_bytes = await self._reader.readexactly(4)
-        (data_length,) = struct.unpack("<i", len_bytes)
-        data_bytes = await self._reader.readexactly(data_length)
-        res_type, req_id = struct.unpack("<ii", data_bytes[0:8])
-        payload = data_bytes[8:-2]
-        padding = data_bytes[-2:]
-
-        return decode(res_type, req_id, payload, padding)
+    async def read(self) -> RconResponsePacket:
+        return await next_packet(
+            lambda n: self._reader.readexactly(n),
+        )
 
     def close(self):
         self._writer.close()
@@ -89,8 +82,8 @@ class RconClient:
 
     async def read(
             self,
-            on_message: Callable[[RconResponse], None],
-            notify_error: Callable[[str], None] | None = None,
+            on_message: Callable[[RconResponsePacket], None],
+            on_error: Callable[[str], None] | None = None,
     ):
         while True:
             next_packet = await self._connection.read()
@@ -101,8 +94,8 @@ class RconClient:
                     else:
                         self._responses[request_id].append(payload)
                 case UnprocessableResponse(_, message):
-                    if notify_error:
-                        notify_error(message)
+                    if on_error:
+                        on_error(message)
 
                 case _:
                     pass
@@ -128,7 +121,8 @@ class RconClientManager:
             host: str,
             rcon_port: int,
             rcon_password: str,
-            timeout: int = 5000,
+            timeout: int = 5,
+            on_failure: Optional[Callable[[], Coroutine]] = None,
     ):
         self._request_id_provider = request_id_provider
         self._host = host
@@ -137,22 +131,25 @@ class RconClientManager:
         self._timeout = timeout
         self.responses = defaultdict(set)
         self._encoding = encoding(game)
+        self._on_failure = on_failure
 
     async def __aenter__(self) -> RconClient:
-
+        print(f"Connecting to {self._host}:{self._rcon_port}")
         await retry(
-            self._connect(),
-            [
+            self._connect,
+            (
                 RequestIdMismatchError,
                 InvalidPasswordError,
                 InvalidPacketError,
                 TimeoutError,
                 asyncio.TimeoutError,
                 ConnectionRefusedError,
-            ],
-            100,
-            10,
-            60000
+                OSError,
+            ),
+            backoff_ms=1000,
+            jitter_ms=100,
+            max_backoff_ms=240000,
+            on_failure=self._on_failure
         )
 
         return RconClient(self._connection, self._request_id_provider, self._encoding)
@@ -182,8 +179,8 @@ class RconClientManager:
                     raise RequestIdMismatchError(request_id, resp_req_id)
             case LoginFailedResponse():
                 raise InvalidPasswordError()
-            case UnprocessableResponse(message):
-                raise InvalidPacketError(message)
+            case UnprocessableResponse(request_id, message):
+                raise InvalidPacketError(f"{request_id}: {message}")
             case _:
                 raise InvalidPacketError("Expected login response.")
 

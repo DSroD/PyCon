@@ -1,7 +1,7 @@
 import uuid
 
 from messages.rcon import rcon_command_topic, RconResponse, rcon_response_topic
-from pubsub.filter import FieldEquals, FieldLength
+from pubsub.filter import FieldLength
 from pubsub.pubsub import PubSub
 from services.service import Service
 

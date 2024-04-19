@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Never, Any, Optional, Literal
+from typing import Never, Any, Optional, Literal, Callable
 
-from fastapi.templating import Jinja2Templates
+from jinja2 import Template
 
 from messages.converter import HtmxConverter
 from pubsub.topic import TopicDescriptor
@@ -35,9 +35,9 @@ cls_conversions = {
 }
 
 
-class NotificationConverter(HtmxConverter[Never, NotificationMessage, Any]):
-    def __init__(self, templates: Jinja2Templates):
-        self._template = templates.get_template("notifications/notification.html")
+class NotificationConverter(HtmxConverter[Any, Never, NotificationMessage]):
+    def __init__(self, template_provider: Callable[[str], Template]):
+        self._template = template_provider("notifications/notification.html")
 
     def convert_in(self, json: Any) -> Never:
         pass
@@ -45,7 +45,7 @@ class NotificationConverter(HtmxConverter[Never, NotificationMessage, Any]):
     def convert_out(self, message: NotificationMessage):
         cls = cls_conversions.get(message.type, None)
         return self._template.render(
-            msg=message.message,
+            content=message.message,
             cls=cls,
             remove_after=message.remove_after
         )

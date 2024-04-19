@@ -1,7 +1,7 @@
 import struct
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Callable
+from typing import Callable, Coroutine
 
 
 class RconPacket(ABC):
@@ -18,6 +18,9 @@ class RconPacket(ABC):
 
 
 class OutgoingRconPacket(RconPacket, ABC):
+    """
+    Base class for outgoing RCON packets.
+    """
     @property
     @abstractmethod
     def _payload(self) -> str:
@@ -39,6 +42,9 @@ class OutgoingRconPacket(RconPacket, ABC):
 
 
 class LoginPacket(OutgoingRconPacket):
+    """
+    Request packet sent after establishing connection with server.
+    """
     def __init__(self, rcon_password: str, request_id: int):
         self._rcon_password = rcon_password
         self._rid = request_id
@@ -57,6 +63,9 @@ class LoginPacket(OutgoingRconPacket):
 
 
 class CommandPacket(OutgoingRconPacket):
+    """
+    Request packet containing a single command to execute.
+    """
     def __init__(self, command: str, request_id: int):
         self._command = command
         self._rid = request_id
@@ -75,6 +84,9 @@ class CommandPacket(OutgoingRconPacket):
 
 
 class CommandEndPacket(OutgoingRconPacket):
+    """
+    Correlation packet sent after each command.
+    """
     def __init__(self, request_id: int):
         self._rid = request_id
 
@@ -91,32 +103,41 @@ class CommandEndPacket(OutgoingRconPacket):
         return self._rid
 
 
+@dataclass(frozen=True, eq=True)
 class LoginSuccessResponse:
-    def __init__(self, request_id: int):
-        self._rid = request_id
-
-    @property
-    def request_id(self):
-        return self._rid
+    """
+    Server response to login packet - success.
+    """
+    request_id: int
 
 
+@dataclass(frozen=True, eq=True)
 class LoginFailedResponse:
+    """
+    Server response to login packet - failure.
+    """
     pass
 
 
-@dataclass
+@dataclass(frozen=True, eq=True)
 class CommandResponse:
+    """
+    Response to command packet.
+    """
     request_id: int
     payload: bytes
 
 
-@dataclass
+@dataclass(frozen=True, eq=True)
 class UnprocessableResponse:
+    """
+    Response packet could not be processed
+    """
     request_id: int
     message: str
 
 
-ResponseRconPacket = LoginSuccessResponse | LoginFailedResponse | CommandResponse | UnprocessableResponse
+RconResponsePacket = LoginSuccessResponse | LoginFailedResponse | CommandResponse | UnprocessableResponse
 
 
 def _decode_command_response(request_id: int, payload: bytes):
@@ -129,13 +150,31 @@ def _decode_login_response(request_id: int, _: bytes):
     return LoginSuccessResponse(request_id)
 
 
-decoders: dict[int, Callable[[int, bytes], ResponseRconPacket]] = {
+decoders: dict[int, Callable[[int, bytes], RconResponsePacket]] = {
     0: _decode_command_response,
     2: _decode_login_response
 }
 
 
-def decode(packet_type: int, request_id: int, padding: bytes, payload: bytes) -> ResponseRconPacket:
+async def next_packet(
+        read_n: Callable[[int], Coroutine],
+):
+    len_bytes = await read_n(4)
+    (data_length,) = struct.unpack("<i", len_bytes)
+    data_bytes = await read_n(data_length)
+    req_id, res_type = struct.unpack("<ii", data_bytes[0:8])
+    payload = data_bytes[8:-2]
+    padding = data_bytes[-2:]
+
+    return _decode(res_type, req_id, payload, padding)
+
+
+def _decode(
+        packet_type: int,
+        request_id: int,
+        payload: bytes,
+        padding: bytes
+) -> RconResponsePacket:
     if padding != b"\x00\x00":
         return UnprocessableResponse(request_id, "Padding mismatch")
     if packet_type not in decoders:

@@ -1,15 +1,24 @@
-<div id="content" hx-swap-oob="true" hx-ext="ws" ws-connect="/rcon/{{ server.uid }}" class="f-col height:100% padding-block">
+<div id="content" hx-swap-oob="true" class="f-col height:100% padding-block">
     <div class="box">
         <h1>{{ server.name }}</h1>
         <p>{{ server.description }}</p>
     </div>
-    <div class="box">
-        <form class="tool-bar" hx-on="htmx:wsAfterSend: this.reset()" ws-send>
-            <label>Command:
-                <input type="text" name="command" placeholder="command">
-            </label>
-        </form>
-    </div>
+
+    <div hx-ext="ws" ws-connect="/servers/updates/{{ server.uid }}"></div>
+    {% if server_status.rcon_connected %}
+        <div id="rcon_controls" class="box" hx-ext="ws" ws-connect="/rcon/{{ server.uid }}">
+            <form class="tool-bar" hx-on="htmx:wsAfterSend: this.reset()" ws-send>
+                <label>Command:
+                    <input type="text" name="command" placeholder="command">
+                </label>
+                <input type="submit" value="Send">
+            </form>
+        </div>
+    {% else %}
+        <div id="rcon_controls" class="box warn">
+            Not connected to RCON
+        </div>
+    {% endif %}
 
     <div id="rcon" class="box flex-grow:3 overflow:scroll">
 

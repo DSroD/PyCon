@@ -3,10 +3,11 @@ from typing import Optional, Annotated
 
 from fastapi import HTTPException, status, Depends
 from fastapi.requests import Request
-from fastapi.templating import Jinja2Templates
 from fastapi.responses import Response
+from fastapi.templating import Jinja2Templates
 
-from dependencies import get_current_user, dependencies
+from dependencies import get_current_user, ioc
+from templating import TemplateProvider
 
 
 class HtmxResponse(ABC):
@@ -36,8 +37,7 @@ class HtmxResponse(ABC):
 def htmx_response_factory(
         request: Request,
         user: Annotated[Optional[str], Depends(get_current_user)],
-        templates: Annotated[Jinja2Templates, Depends(dependencies.get_templates)],
-        base_template: Annotated[str, Depends(dependencies.get_base_template_name)],
+        templates: Annotated[TemplateProvider, Depends(ioc.get(TemplateProvider))],
 ):
 
     class HtmxResponseImpl(HtmxResponse):
@@ -50,13 +50,12 @@ def htmx_response_factory(
                 )
 
             is_htmx = request.headers.get("HX-Request", False)
-            template_name = self.template if is_htmx else base_template
-            context = {"user": user, **self.context} if is_htmx else \
-                {"user": user, "content_url": request.url.path}
+            template_name = self.template if is_htmx else templates.base_template_name
+            context = {"user": user, **self.context} if is_htmx else {"user": user, "content_url": request.url.path}
 
-            rendered = templates.TemplateResponse(
+            rendered = templates.as_response(
                 request=request,
-                name=template_name,
+                template_name=template_name,
                 context=context,
                 headers=self.headers,
                 status_code=self.status_code,

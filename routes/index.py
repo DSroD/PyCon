@@ -3,13 +3,13 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from fastapi.websockets import WebSocket
 
-from dependencies import dependencies, get_current_user
-from htmx.htmx_response import HtmxResponse, htmx_response_factory
+from dependencies import get_current_user, ioc
+from htmx import HtmxResponse, htmx_response_factory
 from messages.heartbeat import HeartbeatConverter, heartbeat_topic
-from messages.notifications import NotificationConverter, notification_topic, NotificationMessage
+from messages.notifications import NotificationConverter, notification_topic
 from pubsub.filter import FieldEquals, FieldContains
 from pubsub.pubsub import PubSub
-from ws.processor import Processor as WsProcessor
+from websocket_processor import WebsocketProcessor as WsProcessor
 
 router = APIRouter()
 
@@ -26,8 +26,8 @@ async def root(
 @router.websocket("/heartbeat")
 async def heartbeat(
         websocket: WebSocket,
-        pubsub: Annotated[PubSub, Depends(dependencies.get_pubsub)],
-        heartbeat_converter: Annotated[HeartbeatConverter, Depends(dependencies.get_heartbeat_converter)],
+        pubsub: Annotated[PubSub, Depends(ioc.get(PubSub))],
+        heartbeat_converter: Annotated[HeartbeatConverter, Depends(ioc.get(HeartbeatConverter))],
 ):
     await WsProcessor(
         websocket,
@@ -42,8 +42,8 @@ async def heartbeat(
 async def notifications(
         websocket: WebSocket,
         user: Annotated[str | None, Depends(get_current_user)],
-        pubsub: Annotated[PubSub, Depends(dependencies.get_pubsub)],
-        notification_converter: Annotated[NotificationConverter, Depends(dependencies.get_notifications_converter)],
+        pubsub: Annotated[PubSub, Depends(ioc.get(PubSub))],
+        notification_converter: Annotated[NotificationConverter, Depends(ioc.get(NotificationConverter))],
 ):
     if not user:
         return

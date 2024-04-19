@@ -21,6 +21,6 @@ class InMemoryDbConfiguration:
 class Configuration(BaseSettings):
     db_configuration: Union[SqliteDbConfiguration, InMemoryDbConfiguration] \
         = Field(InMemoryDbConfiguration(), discriminator='db_provider')
-    access_token_expire_minutes: int = 30
+    access_token_expire_minutes: int = 120
     access_token_secret: str = "otvDRUIVJkhdVO5oGYGDIMrCpOsBH5OH"
     base_template_name: str = "base.html"

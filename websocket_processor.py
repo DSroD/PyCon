@@ -1,19 +1,19 @@
 import asyncio
 from typing import Optional
 
-from starlette.websockets import WebSocket, WebSocketDisconnect
+from fastapi.websockets import WebSocket
 
 from messages.converter import HtmxConverter
 from pubsub.filter import PubSubFilter
-from pubsub.pubsub import PubSub, Subscription
+from pubsub.pubsub import PubSub
 from pubsub.topic import TopicDescriptor
 
 
-class Processor[TMessageIn, TMessageOut, TDataIn]:
+class WebsocketProcessor[TDataIn, TMessageIn, TMessageOut]:
     def __init__(
             self,
             websocket: WebSocket,
-            converter: HtmxConverter[TMessageIn, TMessageOut, TDataIn],
+            converter: HtmxConverter[TDataIn, TMessageIn, TMessageOut],
             pubsub: PubSub,
             publish_topic: Optional[TopicDescriptor[TMessageIn]],
             subscribe_topic: Optional[TopicDescriptor[TMessageOut]],
@@ -33,11 +33,12 @@ class Processor[TMessageIn, TMessageOut, TDataIn]:
             converted = self._converter.convert_in(message)
             self._pubsub.publish(self._publish_topic, converted)
 
-    async def _write(self, subscription: Subscription):
-        with subscription as sub:
-            async for msg in sub:
-                converted = self._converter.convert_out(msg)
-                await self._websocket.send_text(converted)
+    async def _write(self):
+        if self._subscribe_topic:
+            with self._pubsub.subscribe(self._subscribe_topic, self._subscribe_filter) as sub:
+                async for msg in sub:
+                    converted = self._converter.convert_out(msg)
+                    await self._websocket.send_text(converted)
 
     async def process(self):
         """
@@ -46,17 +47,24 @@ class Processor[TMessageIn, TMessageOut, TDataIn]:
         :return:
         """
         await self._websocket.accept()
-        write_task = None
-        if self._subscribe_topic:
-            subscription = self._pubsub.subscribe(self._subscribe_topic, self._subscribe_filter)
-            write_task = asyncio.create_task(self._write(subscription))
+        write_task = asyncio.create_task(self._write())
+        read_task = asyncio.create_task(self._read())
         try:
-            await self._read()
+            done, pending = await asyncio.wait(
+                [write_task, read_task],
+                return_when=asyncio.FIRST_EXCEPTION
+            )
+
+            for task in pending:
+                task.cancel()
+
         except asyncio.CancelledError:
             await self._websocket.close()
             raise
-        except WebSocketDisconnect:
-            raise
+
         finally:
-            if write_task:
-                write_task.cancel()
+            write_task.cancel()
+            read_task.cancel()
+
+
+
