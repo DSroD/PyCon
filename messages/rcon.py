@@ -30,16 +30,16 @@ def rcon_response_topic(server_uuid: uuid.UUID) -> TopicDescriptor[RconResponse]
     return TopicDescriptor[RconResponse](f"rcon_response/{server_uuid}")
 
 
-class RconWSConverter(HtmxConverter[RconCommand, RconResponse, dict]):
+class RconWSConverter(HtmxConverter[dict, RconCommand, RconResponse]):
     def __init__(self, server: uuid.UUID, user: str, template_provider: Callable[[str], Template]):
         self._template = template_provider("rcon/response.html")
         self._server = server
         self._user = user
 
-    def convert_in(self, json: dict) -> RconCommand:
+    def convert_in(self, data: dict) -> RconCommand:
         return RconCommand(
             self._user,
-            json["command"]
+            data["command"]
         )
 
     def convert_out(self, message: RconResponse) -> str:

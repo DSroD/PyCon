@@ -9,16 +9,16 @@ from typing import Callable, Optional, Coroutine
 
 from messages.rcon import RconCommand, RconResponse
 from models.server import Server
-from services.rcon.encoding import encoding
-from services.rcon.packets import ResponseRconPacket, LoginPacket, OutgoingRconPacket, decode, LoginSuccessResponse, \
-    LoginFailedResponse, UnprocessableResponse, CommandPacket, CommandEndPacket, CommandResponse
-from services.rcon.rcon_client_errors import RequestIdMismatchError, InvalidPasswordError, InvalidPacketError
-from services.rcon.request_id import RequestIdProvider
+from rcon.encoding import encoding
+from rcon.packets import RconResponsePacket, LoginPacket, OutgoingRconPacket, LoginSuccessResponse, \
+    LoginFailedResponse, UnprocessableResponse, CommandPacket, CommandEndPacket, CommandResponse, next_packet
+from rcon.rcon_client_errors import RequestIdMismatchError, InvalidPasswordError, InvalidPacketError
+from rcon.request_id import RequestIdProvider
 from utils.retry import retry_jitter_exponential_backoff as retry
 
 
 class RconConnection:
-    """Connection to the RCON server"""
+    """Connection proxy to the RCON server"""
     def __init__(
             self,
             reader: StreamReader,
@@ -33,15 +33,10 @@ class RconConnection:
         self._writer.write(data.encode(self._payload_encoding))
         await self._writer.drain()
 
-    async def read(self) -> ResponseRconPacket:
-        len_bytes = await self._reader.readexactly(4)
-        (data_length,) = struct.unpack("<i", len_bytes)
-        data_bytes = await self._reader.readexactly(data_length)
-        req_id, res_type = struct.unpack("<ii", data_bytes[0:8])
-        payload = data_bytes[8:-2]
-        padding = data_bytes[-2:]
-
-        return decode(res_type, req_id, payload, padding)
+    async def read(self) -> RconResponsePacket:
+        return await next_packet(
+            lambda n: self._reader.readexactly(n),
+        )
 
     def close(self):
         self._writer.close()
@@ -87,7 +82,7 @@ class RconClient:
 
     async def read(
             self,
-            on_message: Callable[[RconResponse], None],
+            on_message: Callable[[RconResponsePacket], None],
             on_error: Callable[[str], None] | None = None,
     ):
         while True:
@@ -151,9 +146,9 @@ class RconClientManager:
                 ConnectionRefusedError,
                 OSError,
             ),
-            backoff_ms=100,
-            jitter_ms=10,
-            max_backoff_ms=60000,
+            backoff_ms=1000,
+            jitter_ms=100,
+            max_backoff_ms=240000,
             on_failure=self._on_failure
         )
 

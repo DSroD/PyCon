@@ -1,0 +1,6 @@
+<div id="server_{{ server_uid }}" hx-swap-oob="beforeend">
+    <div hx-ext="remove-me" remove-me="1s">
+    <div _="init add {{ '.plain' if rcon_connected else '.warn' }} to #server_{{ server_uid }}"></div>
+    <div _="init remove {{ '.warn' if rcon_connected else '.plain' }} from #server_{{ server_uid }}"></div>
+    </div>
+</div>

@@ -1,11 +1,15 @@
 <div id="content" hx-swap-oob="true">
-    {% for server in servers %}
-    <div class="box {{ 'plain' if ((statuses[server.uid]).rcon_connected) else 'warn' }}">
-        <strong class="block titlebar">
-            <a hx-get="/servers/{{ server.uid }}">{{ server.name }}</a>
-        </strong>
-        <div>{{ server.description }}</div>
-        <div>{{ server.host }}:{{ server.port }} (RCON: {{ server.rcon_port }})</div>
+    <div hx-ext="ws" ws-connect="/servers/updates">
+        {% for server in servers %}
+            <div class="box {{ 'plain' if ((statuses[server.uid]).rcon_connected) else 'warn' }}" id="server_{{ server.uid }}">
+                <div id="cnt_{{ server.uid }}" hx-preserve="true">
+                    <strong class="block titlebar">
+                        <a hx-get="/servers/{{ server.uid }}">{{ server.name }}</a>
+                    </strong>
+                    <div>{{ server.description }}</div>
+                    <div>{{ server.host }}:{{ server.port }} (RCON: {{ server.rcon_port }})</div>
+                </div>
+            </div>
+        {% endfor %}
     </div>
-    {% endfor %}
 </div>

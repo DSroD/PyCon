@@ -14,7 +14,7 @@ class ServerDaoImpl(ServerDao):
                 "host": "localhost",
                 "port": 25565,
                 "rcon_port": 25575,
-                "rcon_password": "test_server_rcon_pwd",
+                "rcon_password": "test_server_rcon_pwd1",
                 "description": "Test server description",
                 "uid": uuid.UUID("141a5347-abfc-4c13-8d10-bba20a261f69"),
                 "allowed_users": ["test"]

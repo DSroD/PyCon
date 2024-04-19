@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Never, Any, Callable
+from typing import Never, Callable
 
 from jinja2 import Template
 
@@ -16,11 +16,11 @@ class HeartbeatMessage:
 heartbeat_topic = TopicDescriptor[HeartbeatMessage]("heartbeat")
 
 
-class HeartbeatConverter(HtmxConverter[Never, HeartbeatMessage, Any]):
+class HeartbeatConverter(HtmxConverter[Never, Never, HeartbeatMessage]):
     def __init__(self, template_provider: Callable[[str], Template]):
         self._template = template_provider("heartbeat.html")
 
-    def convert_in(self, json: Any) -> Never:
+    def convert_in(self, data: Never) -> Never:
         pass
 
     def convert_out(self, message: HeartbeatMessage) -> str:

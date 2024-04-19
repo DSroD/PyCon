@@ -8,6 +8,7 @@ from configuration import Configuration, InMemoryDbConfiguration, SqliteDbConfig
 from dao.server_dao import ServerDao
 from dao.user_dao import UserDao
 from messages.rcon import RconWSConverter
+from messages.server_status import ServerStatusUpdateConverter
 from templating import TemplateProvider
 
 TDep = TypeVar("TDep")
@@ -61,4 +62,14 @@ def rcon_converter_factory(
             server_id: uuid.UUID,
     ):
         return RconWSConverter(server_id, user, templates.get_template)
+    return create
+
+
+def status_update_converter_factory(
+        templates: Annotated[TemplateProvider, Depends(ioc.get(TemplateProvider))],
+):
+    def create(
+            server_id: Optional[uuid.UUID],
+    ):
+        return ServerStatusUpdateConverter(templates.get_template, server_id,)
     return create

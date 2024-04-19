@@ -35,7 +35,7 @@ cls_conversions = {
 }
 
 
-class NotificationConverter(HtmxConverter[Never, NotificationMessage, Any]):
+class NotificationConverter(HtmxConverter[Any, Never, NotificationMessage]):
     def __init__(self, template_provider: Callable[[str], Template]):
         self._template = template_provider("notifications/notification.html")
 

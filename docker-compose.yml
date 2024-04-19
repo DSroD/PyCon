@@ -11,7 +11,7 @@ services:
     environment:
       EULA: "TRUE"
       TYPE: "PAPER"
-      RCON_PASSWORD: "test_server_rcon_pwd"
+      RCON_PASSWORD: "test_server_rcon_pwd1"
       MAX_MEMORY: 2G
       RCON_PORT: 25575
 

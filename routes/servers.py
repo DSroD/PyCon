@@ -1,13 +1,15 @@
 import uuid
-from typing import Annotated, Callable
+from typing import Annotated, Callable, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocketException, status
 from fastapi.websockets import WebSocket
 
 from dao.server_dao import ServerDao
-from dependencies import get_current_user, rcon_converter_factory, ioc
+from dependencies import get_current_user, rcon_converter_factory, ioc, status_update_converter_factory
 from htmx import HtmxResponse, htmx_response_factory
 from messages.rcon import RconWSConverter, rcon_command_topic, rcon_response_topic
+from messages.server_status import ServerStatusUpdateConverter, server_status_topic
+from pubsub.filter import FieldEquals
 from pubsub.pubsub import PubSub
 from services.server_status import ServerStatusService
 from websocket_processor import WebsocketProcessor as WsProcessor
@@ -61,6 +63,55 @@ async def server(
             "server_status": server_status
         },
     ).to_response()
+
+
+@router.websocket("/servers/updates")
+async def updates(
+        websocket: WebSocket,
+        pubsub: Annotated[PubSub, Depends(ioc.get(PubSub))],
+        user: Annotated[str, Depends(get_current_user)],
+        converter_factory: Annotated[Callable[
+            [Optional[uuid.UUID]],
+            ServerStatusUpdateConverter],
+        Depends(status_update_converter_factory)],
+):
+    if user is None:
+        raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
+
+    converter = converter_factory(None)
+    await WsProcessor(
+        websocket,
+        converter,
+        pubsub,
+        None,
+        server_status_topic,
+    ).process()
+
+
+@router.websocket("/servers/updates/{server_id}")
+async def updates(
+        websocket: WebSocket,
+        server_id: str,
+        pubsub: Annotated[PubSub, Depends(ioc.get(PubSub))],
+        user: Annotated[str, Depends(get_current_user)],
+        converter_factory: Annotated[Callable[
+            [Optional[uuid.UUID]],
+            ServerStatusUpdateConverter],
+        Depends(status_update_converter_factory)],
+):
+    if user is None:
+        raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
+    uid = uuid.UUID(server_id)
+
+    converter = converter_factory(uid)
+    await WsProcessor(
+        websocket,
+        converter,
+        pubsub,
+        None,
+        server_status_topic,
+        FieldEquals(lambda msg: msg.server_uid, uid)
+    ).process()
 
 
 @router.websocket("/rcon/{server_id}")

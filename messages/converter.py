@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 
-class HtmxConverter[TMessageIn, TMessageOut, TDataIn](ABC):
+class HtmxConverter[TDataIn, TMessageIn, TMessageOut](ABC):
     @abstractmethod
     def convert_out(self, message: TMessageOut) -> str:
         """
@@ -12,10 +12,10 @@ class HtmxConverter[TMessageIn, TMessageOut, TDataIn](ABC):
         pass
 
     @abstractmethod
-    def convert_in(self, json: TDataIn) -> TMessageIn:
+    def convert_in(self, data: TDataIn) -> TMessageIn:
         """
         Converts incoming data to a message
-        :param json:
+        :param data:
         :return:
         """
         pass

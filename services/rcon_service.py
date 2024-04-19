@@ -4,10 +4,10 @@ from messages.notifications import notification_topic, NotificationMessage
 from messages.rcon import rcon_command_topic, rcon_response_topic
 from messages.server_status import server_status_topic, RconConnected, RconDisconnected
 from models.server import Server
-from pubsub.filter import FieldEquals
+from pubsub.filter import FieldLength
 from pubsub.pubsub import PubSub
-from services.rcon.rcon_client import RconClientManager, RconClient
-from services.rcon.request_id import RequestIdProvider
+from rcon.rcon_client import RconClientManager, RconClient
+from rcon.request_id import RequestIdProvider
 from services.service import Service, RecoverableError
 
 
@@ -18,6 +18,7 @@ class RconService(Service):
             server: Server,
     ):
         self._pubsub = pubsub
+        # TODO: this should be supplier to allow changes when processor is running
         self._server = server
 
     @property
@@ -77,7 +78,8 @@ class RconService(Service):
 
     async def _write(self, client: RconClient):
         with self._pubsub.subscribe(
-                rcon_command_topic(self._server.uid)
+            rcon_command_topic(self._server.uid),
+            FieldLength(lambda msg: msg.command, 1, FieldLength.Mode.MIN)
         ) as sub:
             async for cmd in sub:
                 await client.send_command(cmd)
