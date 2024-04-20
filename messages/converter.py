@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
 
 
-class HtmxConverter[TDataIn, TMessageIn, TMessageOut](ABC):
+class HtmxConverter[DataInT, MessageInT, MessageOutT](ABC):
     @abstractmethod
-    def convert_out(self, message: TMessageOut) -> str:
+    def convert_out(self, message: MessageOutT) -> str:
         """
         Converts outgoing message to HTMX component (as string)
         :param message:
@@ -12,7 +12,7 @@ class HtmxConverter[TDataIn, TMessageIn, TMessageOut](ABC):
         pass
 
     @abstractmethod
-    def convert_in(self, data: TDataIn) -> TMessageIn:
+    def convert_in(self, data: DataInT) -> MessageInT:
         """
         Converts incoming data to a message
         :param data:

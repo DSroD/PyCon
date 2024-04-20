@@ -13,30 +13,30 @@ class InProcessPubSub(PubSub):
     InProcess PubSub - allows communication between different modules of the app running in the same process
     """
     @dataclass(eq=True, frozen=True)
-    class SubscriptionRecord[TMessage]:
-        topic: TopicDescriptor[TMessage]
-        subscription: Subscription[TMessage]
-        msg_filter: PubSubFilter[TMessage]
+    class SubscriptionRecord[MessageT]:
+        topic: TopicDescriptor[MessageT]
+        subscription: Subscription[MessageT]
+        msg_filter: PubSubFilter[MessageT]
 
     def __init__(self):
         self._subscriptions: dict[TopicDescriptor, set[InProcessPubSub.SubscriptionRecord]] = defaultdict(set)
         self._subscription_record_id_map: dict[uuid.UUID, InProcessPubSub.SubscriptionRecord] = dict()
 
-    def publish[TMessage](
+    def publish[MessageT](
             self,
-            topic: TopicDescriptor[TMessage],
-            message: TMessage
+            topic: TopicDescriptor[MessageT],
+            message: MessageT
     ):
         subscriptions = self._subscriptions[topic]
         for sub in subscriptions:
             if not sub.msg_filter or sub.msg_filter.accept(message):
                 sub.subscription._on_message(message)
 
-    def subscribe[TMessage](
+    def subscribe[MessageT](
             self,
-            topic: TopicDescriptor[TMessage],
+            topic: TopicDescriptor[MessageT],
             msg_filter: Optional[PubSubFilter] = None,
-    ) -> Subscription[TMessage]:
+    ) -> Subscription[MessageT]:
         sub_id = uuid.uuid4()
         subscription = Subscription(self, self._unsubscribe(sub_id))
         record = InProcessPubSub.SubscriptionRecord(topic, subscription, msg_filter)

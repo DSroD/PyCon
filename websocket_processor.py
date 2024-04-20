@@ -9,14 +9,14 @@ from pubsub.pubsub import PubSub
 from pubsub.topic import TopicDescriptor
 
 
-class WebsocketProcessor[TDataIn, TMessageIn, TMessageOut]:
+class WebsocketProcessor[DataInT, MessageInT, MessageOutT]:
     def __init__(
             self,
             websocket: WebSocket,
-            converter: HtmxConverter[TDataIn, TMessageIn, TMessageOut],
+            converter: HtmxConverter[DataInT, MessageInT, MessageOutT],
             pubsub: PubSub,
-            publish_topic: Optional[TopicDescriptor[TMessageIn]],
-            subscribe_topic: Optional[TopicDescriptor[TMessageOut]],
+            publish_topic: Optional[TopicDescriptor[MessageInT]],
+            subscribe_topic: Optional[TopicDescriptor[MessageOutT]],
             subscribe_filter: Optional[PubSubFilter] = None,
     ):
         self._websocket = websocket

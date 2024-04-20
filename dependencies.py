@@ -11,18 +11,18 @@ from messages.rcon import RconWSConverter
 from messages.server_status import ServerStatusUpdateConverter
 from templating import TemplateProvider
 
-TDep = TypeVar("TDep")
+DependencyT = TypeVar("DependencyT")
 
 
 class Dependencies:
     def __init__(self):
-        self._services: dict[type[TDep], TDep] = dict()
+        self._services: dict[type[DependencyT], DependencyT] = dict()
 
-    def register(self, service: TDep, register_type: Optional[type[TDep]] = None):
+    def register(self, service: DependencyT, register_type: Optional[type[DependencyT]] = None):
         service_type = register_type if register_type else type(service)
         self._services[service_type] = service
 
-    def get(self, service_type: type[TDep]) -> Callable[[], TDep]:
+    def get(self, service_type: type[DependencyT]) -> Callable[[], DependencyT]:
         return lambda: self._services[service_type]
 
 
