@@ -5,7 +5,7 @@ class HtmxConverter[TDataIn, TMessageIn, TMessageOut](ABC):
     @abstractmethod
     def convert_out(self, message: TMessageOut) -> str:
         """
-        Converts outgoing message to HTMX component
+        Converts outgoing message to HTMX component (as string)
         :param message:
         :return: HTMX component
         """

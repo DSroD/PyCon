@@ -8,6 +8,11 @@ from htmx import HtmxResponse, htmx_response_factory
 def notification_response_factory(
         response_factory: Annotated[type[HtmxResponse], Depends(htmx_response_factory)],
 ):
+    """
+    Returns a function that will return a HTMX notification response.
+    :param response_factory: HTMX response factory
+    :return:
+    """
     def notification_response(
             msg: str,
             cls: Optional[str] = None,

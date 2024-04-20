@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Callable
+from typing import Callable, Container, Sized
 
 
 class PubSubFilter[TMessage](ABC):
@@ -47,8 +47,15 @@ class _FilterOr[TMessage](PubSubFilter[TMessage]):
 
 
 class FieldEquals[TMessage, TValue](PubSubFilter[TMessage]):
+    """
+    Filters messages based on equality check on a value of a field.
+    """
 
     def __init__(self, selector: Callable[[TMessage], TValue], value: TValue):
+        """
+        :param selector:
+        :param value:
+        """
         self._selector = selector
         self._value = value
 
@@ -57,20 +64,35 @@ class FieldEquals[TMessage, TValue](PubSubFilter[TMessage]):
 
 
 class IsType[TMessage](PubSubFilter[TMessage]):
+    """
+    Filters messages based on a type.
+    """
     def __init__(self, subtype: type[TMessage]):
+        """
+        :param subtype: Subtype to check for.
+        """
         self._subtype = subtype
 
     def accept(self, message: TMessage) -> bool:
         return isinstance(message, self._subtype)
 
 
-class FieldLength[TMessage, TField](PubSubFilter[TMessage]):
+class FieldLength[TMessage, TField: Sized](PubSubFilter[TMessage]):
+    """
+    Filters messages based on a length of given field.
+    """
     class Mode(Enum):
         EQ = 0,
         MIN = 1,
         MAX = 2,
 
     def __init__(self, selector: Callable[[TMessage], TField], length: int, mode: FieldLength.Mode = Mode.EQ):
+        """
+        :param selector: Selector of the field to check for length.
+        :param length: Length to check for.
+        :param mode: Compare mode - EQ for equality, MIN for minimum (len(field_value) >= length),
+                        MAX for maximum length (len(field_value) <= length).
+        """
         self._selector = selector
         self._length = length
         self._mode = mode
@@ -87,7 +109,7 @@ class FieldLength[TMessage, TField](PubSubFilter[TMessage]):
         return False
 
 
-class FieldContains[TMessage, TValue, TField: list](PubSubFilter[TMessage]):
+class FieldContains[TMessage, TValue, TField: Container](PubSubFilter[TMessage]):
     def __init__(self, selector: Callable[[TMessage], TField], value: TValue):
         self._selector = selector
         self._value = value

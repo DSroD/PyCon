@@ -10,7 +10,7 @@ from pubsub.topic import TopicDescriptor
 
 class InProcessPubSub(PubSub):
     """
-    InProcess PubSub - allows communication between different modules of the app
+    InProcess PubSub - allows communication between different modules of the app running in the same process
     """
     @dataclass(eq=True, frozen=True)
     class SubscriptionRecord[TMessage]:
@@ -45,7 +45,7 @@ class InProcessPubSub(PubSub):
         return subscription
 
     def _unsubscribe(self, subscription_id: uuid.UUID) -> Callable[[Subscription], None]:
-        def _inner(subscription: Subscription):
+        def _inner(_: Subscription):
             record = self._subscription_record_id_map.pop(subscription_id)
             self._subscriptions[record.topic].remove(record)
         return _inner

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import struct
 from asyncio import StreamReader, StreamWriter
 from collections import defaultdict
 from dataclasses import dataclass
@@ -82,15 +81,15 @@ class RconClient:
 
     async def read(
             self,
-            on_message: Callable[[RconResponsePacket], None],
+            on_response: Callable[[RconResponsePacket], None],
             on_error: Callable[[str], None] | None = None,
     ):
         while True:
-            next_packet = await self._connection.read()
-            match next_packet:
+            packet = await self._connection.read()
+            match packet:
                 case CommandResponse(request_id, payload):
                     if request_id in self._requests:
-                        on_message(self._process_command_response(request_id))
+                        on_response(self._process_command_response(request_id))
                     else:
                         self._responses[request_id].append(payload)
                 case UnprocessableResponse(_, message):

@@ -1,6 +1,6 @@
 import uuid
 from dataclasses import dataclass
-from typing import Never, Any, Optional, Callable
+from typing import Never, Optional, Callable
 
 from jinja2 import Template
 

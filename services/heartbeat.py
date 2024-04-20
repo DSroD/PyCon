@@ -7,9 +7,12 @@ from services.service import Service
 
 
 class HeartbeatPublisher(Service):
+    """
+    Publishes heartbeat messages to the heartbeat topic.
+    """
     @property
     def name(self) -> str:
-        return "HeartbeatPublisher"
+        return "heartbeat_publisher"
 
     def __init__(self, pubsub: PubSub, delay: float):
         self._pubsub = pubsub

@@ -11,7 +11,7 @@ from dao.user_dao import UserDao
 from dependencies import initialize_dao, ioc
 from messages.heartbeat import HeartbeatConverter
 from messages.notifications import NotificationConverter
-from pubsub.inmemory import InProcessPubSub
+from pubsub.inprocess import InProcessPubSub
 from pubsub.pubsub import PubSub
 from routes import login, index, servers
 from services.heartbeat import HeartbeatPublisher
@@ -19,6 +19,8 @@ from services.rcon_service import RconService
 from services.server_status import ServerStatusService
 from services.service import ServiceLauncher
 from templating import TemplateProvider
+
+# TODO: move to dependency module
 
 configuration = Configuration()
 ioc.register(configuration)

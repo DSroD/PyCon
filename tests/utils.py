@@ -1,13 +1,10 @@
 import asyncio
 
 
-def run_async(coro):
+async def yield_to_event_loop():
     """
-    Runs fn in new event loop
-    https://stackoverflow.com/questions/23033939/how-to-test-python-3-4-asyncio-code
-    :param coro: Coroutine to run
+    Yields control to the event loop
+    :return:
     """
-    def wrapper(*args, **kwargs):
-        loop = asyncio.new_event_loop()
-        return loop.run_until_complete(coro(*args, **kwargs))
-    return wrapper
+    # This approach was discussed in https://github.com/python/asyncio/issues/284
+    await asyncio.sleep(0)

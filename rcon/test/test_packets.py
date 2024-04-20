@@ -5,10 +5,9 @@ from models.server import Server
 from rcon.encoding import encoding
 from rcon.packets import LoginPacket, CommandPacket, CommandEndPacket, next_packet, LoginSuccessResponse, \
     LoginFailedResponse, CommandResponse
-from tests.utils import run_async
 
 
-class PacketTest(unittest.TestCase):
+class PacketTest(unittest.IsolatedAsyncioTestCase):
     def test_login_packet_encoding(self):
         packet = LoginPacket("pwd", 1)
         encoded = packet.encode(encoding(Server.Type.MINECRAFT_SERVER))
@@ -50,7 +49,6 @@ class PacketTest(unittest.TestCase):
 
         self.assertEqual(body, encoded)
 
-    @run_async
     async def test_success_login_packet_decode(self):
         request_id = b"\x08\x00\x00\x00"
         packet_type = b"\x02\x00\x00\x00"
@@ -62,7 +60,6 @@ class PacketTest(unittest.TestCase):
 
         self.assertEqual(packet, LoginSuccessResponse(8))
 
-    @run_async
     async def test_failure_login_packet_decode(self):
         request_id = b"\xFF\xFF\xFF\xFF"  # Request id -1 -> failure
         packet_type = b"\x02\x00\x00\x00"  # Packet type 2
@@ -74,7 +71,6 @@ class PacketTest(unittest.TestCase):
 
         self.assertEqual(packet, LoginFailedResponse())
 
-    @run_async
     async def test_command_packet_decode(self):
         request_id = b"\x07\x00\x00\x00"  # 7
         packet_type = b"\x00\x00\x00\x00"   # 0
