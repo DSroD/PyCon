@@ -35,7 +35,7 @@ class MinecraftRconIntegrationTests(unittest.IsolatedAsyncioTestCase):
             server=Server(
                 type=Server.Type.MINECRAFT_SERVER,
                 name="test",
-                host="localhost",
+                host=self.container.get_container_host_ip(),
                 port=25565,
                 rcon_port=25575,
                 rcon_password="test",
