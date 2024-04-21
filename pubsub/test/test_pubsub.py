@@ -215,3 +215,6 @@ class InProcessPubSubTest(unittest.IsolatedAsyncioTestCase):
         await yield_to_event_loop()
 
         task.cancel()
+
+    def test_flaky(self):
+        self.assertEqual(True, False)
