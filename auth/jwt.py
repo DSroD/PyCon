@@ -1,6 +1,6 @@
 """This module provides a class that handles JWT tokens."""
-from datetime import timedelta, datetime, timezone
-from typing import Optional
+from datetime import timedelta, datetime, timezone, tzinfo
+from typing import Optional, Callable
 
 from jose import jwt, JWTError
 
@@ -13,7 +13,12 @@ class JwtTokenUtils:
 
     tokens and retrieval of data from JWT tokens.
     """
-    def __init__(self, secret_key: str, access_token_expiry: timedelta):
+    def __init__(
+            self,
+            secret_key: str,
+            access_token_expiry: timedelta,
+            time_provider: Callable[[tzinfo], datetime] = datetime.now,
+    ):
         """
         :param secret_key: Key for generating JWT tokens.
 
@@ -21,6 +26,7 @@ class JwtTokenUtils:
         """
         self._secret_key = secret_key
         self._access_token_expiry = access_token_expiry
+        self._time_provider = time_provider
 
     def create_access_token(self, user: UserView) -> str:
         """
@@ -31,7 +37,7 @@ class JwtTokenUtils:
         """
         data_to_encode = {
             'sub': user.username,
-            'exp': datetime.now(timezone.utc) + self._access_token_expiry
+            'exp': self._time_provider(timezone.utc) + self._access_token_expiry
         }
         encoded = jwt.encode(data_to_encode, self._secret_key, algorithm='HS512')
         return encoded
