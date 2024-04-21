@@ -8,7 +8,7 @@ from auth.hashing import verify_password
 from auth.jwt import JwtTokenUtils
 from dao.dao import UserDao
 from dependencies import get_current_user, ioc
-from htmx import htmx_response_factory, HtmxResponse
+from htmx import htmx_response_factory, HtmxResponse, HtmxResponseMeta
 from notifications import notification_response_factory
 
 router = APIRouter()
@@ -30,10 +30,12 @@ async def login_post(
         token = token_factory.create_access_token(user)
         return response_factory(
             template="auth/on_success.html",
-            push_path=False,
-            set_cookies={"token": token},
             context={"msg": "Logged in successfully."},
-            headers={"HX-Redirect": "/"},
+            response_meta=HtmxResponseMeta(
+                push_path=False,
+                set_cookies={"token": token},
+                headers={"HX-Redirect": "/"},
+            )
         ).to_response()
     return notification_factory("Login failed", "bad")
 
@@ -48,7 +50,9 @@ async def login(
         return response_factory(
             template="auth/on_success.html",
             context={"msg": "Logged in!"},
-            headers={"HX-Redirect": "/"},
+            response_meta=HtmxResponseMeta(
+                headers={"HX-Redirect": "/"},
+            )
         ).to_response()
     return response_factory(
         template="auth/login.html",

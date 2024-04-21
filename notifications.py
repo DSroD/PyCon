@@ -3,7 +3,7 @@ from typing import Annotated, Optional
 
 from fastapi import Depends
 
-from htmx import HtmxResponse, htmx_response_factory
+from htmx import HtmxResponse, htmx_response_factory, HtmxResponseMeta
 
 
 def notification_response_factory(
@@ -27,7 +27,9 @@ def notification_response_factory(
                 "cls": cls,
                 "remove_after": remove_after
             },
-            push_path=False
+            response_meta=HtmxResponseMeta(
+                push_path=False
+            )
         ).to_response()
 
     return notification_response
