@@ -1,18 +1,25 @@
+"""Servers related routes."""
+# pylint: disable=too-many-function-args
 import uuid
 from typing import Annotated, Callable, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocketException, status
 from fastapi.websockets import WebSocket
 
-from dao.server_dao import ServerDao
-from dependencies import get_current_user, rcon_converter_factory, ioc, status_update_converter_factory
+from dao.dao import ServerDao
+from dependencies import (
+    get_current_user,
+    rcon_converter_factory,
+    ioc,
+    status_update_converter_factory
+)
 from htmx import HtmxResponse, htmx_response_factory
 from messages.rcon import RconWSConverter, rcon_command_topic, rcon_response_topic
 from messages.server_status import ServerStatusUpdateConverter, server_status_topic
 from pubsub.filter import FieldEquals
 from pubsub.pubsub import PubSub
 from services.server_status import ServerStatusService
-from websocket_processor import WebsocketProcessor as WsProcessor
+from websocket_processor import WebsocketProcessor as WsProcessor, WebsocketPubSub
 
 router = APIRouter()
 
@@ -24,6 +31,7 @@ async def servers(
         response_factory: Annotated[type[HtmxResponse], Depends(htmx_response_factory)],
         server_status_service: Annotated[ServerStatusService, Depends(ioc.get(ServerStatusService))]
 ):
+    """Route for getting all servers list."""
     if user is None:
         raise HTTPException(status_code=401)
     user_servers = await server_dao.get_user_servers(user)
@@ -46,6 +54,7 @@ async def server(
         response_factory: Annotated[type[HtmxResponse], Depends(htmx_response_factory)],
         server_status_service: Annotated[ServerStatusService, Depends(ioc.get(ServerStatusService))]
 ):
+    """Route for getting a specific server detail by id."""
     if user is None:
         raise HTTPException(status_code=401)
     uid = uuid.UUID(server_id)
@@ -75,6 +84,7 @@ async def updates(
             ServerStatusUpdateConverter],
         Depends(status_update_converter_factory)],
 ):
+    """Websocket route for updating server status in servers list."""
     if user is None:
         raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
 
@@ -82,14 +92,16 @@ async def updates(
     await WsProcessor(
         websocket,
         converter,
-        pubsub,
-        None,
-        server_status_topic,
+        WebsocketPubSub(
+            pubsub,
+            None,
+            server_status_topic,
+        )
     ).process()
 
 
 @router.websocket("/servers/updates/{server_id}")
-async def updates(
+async def detail_updates(
         websocket: WebSocket,
         server_id: str,
         pubsub: Annotated[PubSub, Depends(ioc.get(PubSub))],
@@ -99,6 +111,7 @@ async def updates(
             ServerStatusUpdateConverter],
         Depends(status_update_converter_factory)],
 ):
+    """Websocket route for updating server status to a specific server detail."""
     if user is None:
         raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
     uid = uuid.UUID(server_id)
@@ -107,10 +120,12 @@ async def updates(
     await WsProcessor(
         websocket,
         converter,
-        pubsub,
-        None,
-        server_status_topic,
-        FieldEquals(lambda msg: msg.server_uid, uid)
+        WebsocketPubSub(
+            pubsub,
+            None,
+            server_status_topic,
+            FieldEquals(lambda msg: msg.server_uid, uid),
+        ),
     ).process()
 
 
@@ -120,8 +135,12 @@ async def command(
         server_id: str,
         pubsub: Annotated[PubSub, Depends(ioc.get(PubSub))],
         user: Annotated[str, Depends(get_current_user)],
-        converter_factory: Annotated[Callable[[uuid.UUID], RconWSConverter], Depends(rcon_converter_factory)]
+        converter_factory: Annotated[
+            Callable[[uuid.UUID], RconWSConverter],
+            Depends(rcon_converter_factory)
+        ]
 ):
+    """Websocket route for handling RCON commands."""
     if user is None:
         raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
     server_uid = uuid.UUID(server_id)
@@ -130,7 +149,9 @@ async def command(
     await WsProcessor(
         websocket,
         converter,
-        pubsub,
-        rcon_command_topic(server_uid),
-        rcon_response_topic(server_uid),
+        WebsocketPubSub(
+            pubsub,
+            rcon_command_topic(server_uid),
+            rcon_response_topic(server_uid),
+        ),
     ).process()

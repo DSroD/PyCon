@@ -1,3 +1,4 @@
+"""PubSub messaging pattern."""
 from __future__ import annotations
 
 from abc import abstractmethod, ABC
@@ -10,6 +11,7 @@ from pubsub.topic import TopicDescriptor
 
 
 class Subscription[MessageT]:
+    """Subscription to a topic."""
     def __init__(self, pubsub: PubSub, on_exit: Callable[[Subscription], None]):
         self._pubsub = pubsub
         self._on_exit = on_exit
@@ -27,13 +29,14 @@ class Subscription[MessageT]:
 
 
 class PubSub(ABC):
+    """Interface for PubSub implementations."""
     @abstractmethod
     def publish[MessageT](
             self,
             topic: TopicDescriptor[MessageT],
             message: MessageT
     ) -> None:
-        pass
+        """Publishes a message to the given topic."""
 
     @abstractmethod
     def subscribe[MessageT](
@@ -41,4 +44,4 @@ class PubSub(ABC):
             topic: TopicDescriptor[MessageT],
             msg_filter: Optional[PubSubFilter] = None
     ) -> Subscription[MessageT]:
-        pass
+        """Subscribes to the given topic with optional filters."""

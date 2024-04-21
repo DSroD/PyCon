@@ -1,3 +1,4 @@
+"""RCON command processor for testing purposes."""
 import uuid
 
 from messages.rcon import rcon_command_topic, RconResponse, rcon_response_topic
@@ -7,6 +8,10 @@ from services.service import Service
 
 
 class EchoProcessor(Service):
+    """RCON command processor for testing purposes.
+
+    Only echoes commands back to the response topic.
+    """
     def __init__(self, pubsub: PubSub, server_id: uuid.UUID):
         self._pubsub = pubsub
         self._server_id = server_id

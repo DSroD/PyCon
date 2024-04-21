@@ -1,3 +1,4 @@
+"""Main module for PyConCraft app."""
 from datetime import timedelta
 
 import uvicorn
@@ -6,15 +7,14 @@ from fastapi.staticfiles import StaticFiles
 
 from auth.jwt import JwtTokenUtils
 from configuration import Configuration
-from dao.server_dao import ServerDao
-from dao.user_dao import UserDao
-from dependencies import initialize_dao, ioc
+from dao.dao import ServerDao, UserDao
+from dependencies import get_daos, ioc
 from messages.heartbeat import HeartbeatConverter
 from messages.notifications import NotificationConverter
 from pubsub.inprocess import InProcessPubSub
 from pubsub.pubsub import PubSub
 from routes import login, index, servers
-from services.heartbeat import HeartbeatPublisher
+from services.heartbeat import HeartbeatPublisherService
 from services.rcon_service import RconService
 from services.server_status import ServerStatusService
 from services.service import ServiceLauncher
@@ -30,10 +30,10 @@ service_launcher = ServiceLauncher(ioc)
 pubsub: PubSub = InProcessPubSub()
 ioc.register(pubsub, PubSub)
 
-daos = initialize_dao(configuration)
+daos = get_daos(configuration)
 (user_dao, server_dao) = daos
 
-ioc.register(user_dao, UserDao),
+ioc.register(user_dao, UserDao)
 ioc.register(server_dao, ServerDao)
 
 ioc.register(
@@ -60,12 +60,13 @@ app.include_router(servers.router)
 
 @app.on_event("startup")
 async def startup():
+    """Startup logic."""
     for dao in daos:
         if dao:
             await dao.initialize()
 
     service_launcher.launch(
-        HeartbeatPublisher(pubsub, 1)
+        HeartbeatPublisherService(pubsub, 1)
     )
 
     service_launcher.launch(
@@ -82,6 +83,7 @@ async def startup():
 
 @app.on_event("shutdown")
 async def shutdown():
+    """Shutdown logic."""
     service_launcher.stop()
 
 if __name__ == "__main__":

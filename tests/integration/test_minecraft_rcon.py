@@ -1,3 +1,5 @@
+"""Minecraft RCON integration tests."""
+# pylint: disable=missing-class-docstring,attribute-defined-outside-init
 import asyncio
 import unittest
 
@@ -7,10 +9,10 @@ from testcontainers.core.waiting_utils import wait_for_logs
 from messages.rcon import RconCommand
 from models.server import Server
 from rcon.rcon_client import RconClientManager
-from rcon.request_id import RequestIdProvider
+from rcon.request_id import IntRequestIdProvider
 
 
-class RconIntegrationTests(unittest.IsolatedAsyncioTestCase):
+class MinecraftRconIntegrationTests(unittest.IsolatedAsyncioTestCase):
     def run(self, result=None):
         with (DockerContainer("itzg/minecraft-server")
               .with_env("EULA", "TRUE")
@@ -20,15 +22,25 @@ class RconIntegrationTests(unittest.IsolatedAsyncioTestCase):
                 as container):
             self.container = container
             wait_for_logs(container, "Thread RCON Listener started")
-            super(RconIntegrationTests, self).run(result)
+            super().run(result)
 
     async def test_command(self):
+        """
+        Sends command to the testcontainer minecraft server.
+
+        Expects to receive a response from the server.
+        """
         async with RconClientManager(
-            request_id_provider=RequestIdProvider(),
-            game=Server.Type.MINECRAFT_SERVER,
-            host="localhost",
-            rcon_password="test",
-            rcon_port=25575,
+            request_id_provider=IntRequestIdProvider(),
+            server=Server(
+                type=Server.Type.MINECRAFT_SERVER,
+                name="test",
+                host="localhost",
+                port=25565,
+                rcon_port=25575,
+                rcon_password="test",
+                description="integration test server",
+            )
         ) as client:
             command = RconCommand(
                 issuing_user="test",
@@ -45,7 +57,5 @@ class RconIntegrationTests(unittest.IsolatedAsyncioTestCase):
             write_task = asyncio.create_task(client.send_command(command))
 
             await asyncio.wait([read_task, write_task])
-
             self.assertEqual(1, len(responses))
             self.assertEqual("Set the time to 1000", responses[0].response)
-

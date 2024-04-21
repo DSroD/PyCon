@@ -1,3 +1,4 @@
+"""Service that publishes heartbeats."""
 import asyncio
 from datetime import datetime
 
@@ -6,10 +7,8 @@ from pubsub.pubsub import PubSub
 from services.service import Service
 
 
-class HeartbeatPublisher(Service):
-    """
-    Publishes heartbeat messages to the heartbeat topic.
-    """
+class HeartbeatPublisherService(Service):
+    """Publishes heartbeat messages to the heartbeat topic."""
     @property
     def name(self) -> str:
         return "heartbeat_publisher"

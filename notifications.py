@@ -1,3 +1,4 @@
+"""Notification HTMX responses."""
 from typing import Annotated, Optional
 
 from fastapi import Depends
@@ -10,6 +11,7 @@ def notification_response_factory(
 ):
     """
     Returns a function that will return a HTMX notification response.
+
     :param response_factory: HTMX response factory
     :return:
     """

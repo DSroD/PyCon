@@ -1,3 +1,5 @@
+"""PubSub tests."""
+# pylint: disable=missing-class-docstring
 import asyncio
 import unittest
 from dataclasses import dataclass
@@ -27,28 +29,8 @@ class InProcessPubSubTest(unittest.IsolatedAsyncioTestCase):
         self.pubsub = InProcessPubSub()
         self.messages_in = []
 
-    async def _pubsub_test(
-            self,
-            topic,
-            messages,
-            msg_filter=None,
-    ):
-        async def read():
-            with self.pubsub.subscribe(topic, msg_filter) as sub:
-                async for msg in sub:
-                    self.messages_in.append(msg)
-
-        task = asyncio.create_task(read())
-        await yield_to_event_loop()
-
-        for message in messages:
-            self.pubsub.publish(topic, message)
-
-        await yield_to_event_loop()
-
-        task.cancel()
-
     async def test_message(self):
+        """Tests subscriber receives published messages."""
         topic = TopicDescriptor[int]("int_topic")
 
         messages_out = [1, 2]
@@ -58,6 +40,7 @@ class InProcessPubSubTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(messages_out, self.messages_in)
 
     async def test_filter_field_contains(self):
+        """Tests FiledContains filter."""
         topic = TopicDescriptor[StrListMessage]("msg_topic")
 
         messages_out = [
@@ -76,6 +59,7 @@ class InProcessPubSubTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual([messages_out[1]], self.messages_in)
 
     async def test_filter_field_length(self):
+        """Tests FieldLength filter."""
         topic = TopicDescriptor[StrListMessage]("str")
 
         messages_out = [
@@ -84,21 +68,34 @@ class InProcessPubSubTest(unittest.IsolatedAsyncioTestCase):
             StrListMessage(str_content="short string", list_content=[1, 2, 3, 4, 5]),
         ]
 
-        msg_filter1 = FieldLength[StrListMessage, str](lambda msg: msg.str_content, 1, FieldLength.Mode.MAX)
+        msg_filter1 = FieldLength[StrListMessage, str](
+            lambda msg: msg.str_content,
+            1,
+            FieldLength.Mode.MAX,
+        )
         await self._pubsub_test(topic, messages_out, msg_filter1)
         self.assertEqual([messages_out[0]], self.messages_in)
         self.messages_in.clear()
 
-        msg_filter2 = FieldLength[StrListMessage, list](lambda msg: msg.list_content, 1, FieldLength.Mode.EQ)
+        msg_filter2 = FieldLength[StrListMessage, list](
+            lambda msg: msg.list_content,
+            1,
+            FieldLength.Mode.EQ,
+        )
         await self._pubsub_test(topic, messages_out, msg_filter2)
         self.assertEqual([messages_out[1]], self.messages_in)
         self.messages_in.clear()
 
-        msg_filter3 = FieldLength[StrListMessage, list](lambda msg: msg.list_content, 1, FieldLength.Mode.MIN)
+        msg_filter3 = FieldLength[StrListMessage, list](
+            lambda msg: msg.list_content,
+            1,
+            FieldLength.Mode.MIN,
+        )
         await self._pubsub_test(topic, messages_out, msg_filter3)
         self.assertEqual([messages_out[1], messages_out[2]], self.messages_in)
 
     async def test_filter_is_type(self):
+        """Tests IsType filter."""
         @dataclass(eq=True, frozen=True)
         class Msg1:
             pass
@@ -124,9 +121,13 @@ class InProcessPubSubTest(unittest.IsolatedAsyncioTestCase):
 
         msg_filter2 = IsType[Msg2](Msg2)
         await self._pubsub_test(topic, messages_out, msg_filter2)
-        self.assertEqual([messages_out[1], messages_out[3], messages_out[4]], self.messages_in)
+        self.assertEqual(
+            [messages_out[1], messages_out[3], messages_out[4]],
+            self.messages_in
+        )
 
     async def test_filter_field_equals(self):
+        """Tests FieldEquals filter."""
         topic = TopicDescriptor[Message]("msg_topic")
 
         messages_out = [
@@ -146,6 +147,7 @@ class InProcessPubSubTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual([messages_out[0], messages_out[3]], self.messages_in)
 
     async def test_filter_or(self):
+        """Tests filter or operator."""
         topic = TopicDescriptor[Message]("msg_topic")
 
         messages_out = [
@@ -161,6 +163,7 @@ class InProcessPubSubTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual([messages_out[0], messages_out[1]], self.messages_in)
 
     async def test_filter_and(self):
+        """Tests filter and operator."""
         topic = TopicDescriptor[Message]("msg_topic")
 
         messages_out = [
@@ -177,6 +180,7 @@ class InProcessPubSubTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual([messages_out[0]], self.messages_in,)
 
     async def test_filter_not(self):
+        """Tests filter not operator."""
         topic = TopicDescriptor[Message]("msg_topic")
 
         messages_out = [
@@ -190,3 +194,24 @@ class InProcessPubSubTest(unittest.IsolatedAsyncioTestCase):
 
         await self._pubsub_test(topic, messages_out, msg_filter)
         self.assertEqual([messages_out[1], messages_out[2]], self.messages_in)
+
+    async def _pubsub_test(
+            self,
+            topic,
+            messages,
+            msg_filter=None,
+    ):
+        async def read():
+            with self.pubsub.subscribe(topic, msg_filter) as sub:
+                async for msg in sub:
+                    self.messages_in.append(msg)
+
+        task = asyncio.create_task(read())
+        await yield_to_event_loop()
+
+        for message in messages:
+            self.pubsub.publish(topic, message)
+
+        await yield_to_event_loop()
+
+        task.cancel()

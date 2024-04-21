@@ -1,3 +1,4 @@
+"""Service for communication with RCON."""
 import asyncio
 
 from messages.notifications import notification_topic, NotificationMessage
@@ -7,11 +8,12 @@ from models.server import Server
 from pubsub.filter import FieldLength
 from pubsub.pubsub import PubSub
 from rcon.rcon_client import RconClientManager, RconClient
-from rcon.request_id import RequestIdProvider
+from rcon.request_id import IntRequestIdProvider
 from services.service import Service, RecoverableError
 
 
 class RconService(Service):
+    """Service responsible for connection to and communication with RCON of a server."""
     def __init__(
             self,
             pubsub: PubSub,
@@ -28,16 +30,13 @@ class RconService(Service):
     async def launch(self):
         try:
             async with RconClientManager(
-                RequestIdProvider(),
-                self._server.type,
-                self._server.host,
-                self._server.rcon_port,
-                self._server.rcon_password,
+                IntRequestIdProvider(),
+                self._server,
                 on_failure=self._notify_connection_failure
             ) as client:
                 await self._process(client)
         except asyncio.IncompleteReadError as e:
-            raise RecoverableError(e, 5000)
+            raise RecoverableError(e, 5000) from e
 
     async def _process(self, client):
         self._pubsub.publish(
@@ -49,13 +48,13 @@ class RconService(Service):
             NotificationMessage(
                 audience="all",
                 message=f"Connected to RCON of {self._server.name}",
-                type=NotificationMessage.NotificationType.Success,
+                type=NotificationMessage.NotificationType.SUCCESS,
             )
         )
 
         write_task = asyncio.create_task(self._write(client))
         read_task = asyncio.create_task(self._read(client))
-        done, pending = await asyncio.wait(
+        _, pending = await asyncio.wait(
             [write_task, read_task],
             return_when=asyncio.FIRST_COMPLETED
         )
@@ -69,7 +68,7 @@ class RconService(Service):
             NotificationMessage(
                 audience="all",
                 message=f"Disconnected from RCON of {self._server.name}",
-                type=NotificationMessage.NotificationType.Error,
+                type=NotificationMessage.NotificationType.ERROR,
             )
         )
 
@@ -95,7 +94,7 @@ class RconService(Service):
                 NotificationMessage(
                     audience="all",
                     message=err_msg,
-                    type=NotificationMessage.NotificationType.Error,
+                    type=NotificationMessage.NotificationType.ERROR,
                 )
             )
         )
@@ -106,7 +105,7 @@ class RconService(Service):
             NotificationMessage(
                 audience="all",
                 message=f"Failed to connect to {self._server.host}:{self._server.rcon_port}",
-                type=NotificationMessage.NotificationType.Warning,
+                type=NotificationMessage.NotificationType.WARNING,
             )
         )
 

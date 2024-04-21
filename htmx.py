@@ -1,5 +1,7 @@
+"""HTMX response related classes and functions."""
 from abc import ABC, abstractmethod
-from typing import Optional, Annotated
+from dataclasses import dataclass, field
+from typing import Optional, Annotated, override
 
 from fastapi import HTTPException, status, Depends
 from fastapi.requests import Request
@@ -7,31 +9,34 @@ from fastapi.responses import Response
 from fastapi.templating import Jinja2Templates
 
 from dependencies import get_current_user, ioc
-from templating import TemplateProvider
+from templating import TemplateProvider, ResponseMeta
+
+
+@dataclass
+class HtmxResponseMeta:
+    """Metadata tied to a HtmxResponse."""
+    require_auth: bool = False
+    push_path: bool = True
+    headers: dict[str, str] = field(default_factory=dict)
+    set_cookies: dict = field(default_factory=dict)
+    status_code: int = 200
 
 
 class HtmxResponse(ABC):
+    """Abstract base class for HTMX response wrapper."""
     def __init__(
             self,
             template: str,
             context: dict = None,
-            require_auth: bool = False,
-            push_path: bool = True,
-            headers: dict = None,
-            set_cookies: dict = None,
-            status_code: int = 200,
+            response_meta: HtmxResponseMeta = HtmxResponseMeta(),
     ):
-        self.template = template
-        self.context = context if context else dict()
-        self.require_auth = require_auth
-        self.push_path = push_path
-        self.headers = headers if headers else dict()
-        self.set_cookies = set_cookies if set_cookies else dict()
-        self.status_code = status_code
+        self._template = template
+        self._context = context if context else {}
+        self._response_meta = response_meta
 
     @abstractmethod
     def to_response(self) -> Response:
-        pass
+        """Creates response from HtmxResponse"""
 
 
 def htmx_response_factory(
@@ -39,10 +44,13 @@ def htmx_response_factory(
         user: Annotated[Optional[str], Depends(get_current_user)],
         templates: Annotated[TemplateProvider, Depends(ioc.get(TemplateProvider))],
 ):
-
+    """Factory for HTMX responses."""
     class HtmxResponseImpl(HtmxResponse):
+        """Creates response from HtmxResponse"""
+        @override
         def to_response(self) -> Jinja2Templates.TemplateResponse:
-            if self.require_auth and not user:
+            """Creates a response with HTMX content."""
+            if self._response_meta.require_auth and not user:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Unauthorized",
@@ -50,21 +58,27 @@ def htmx_response_factory(
                 )
 
             is_htmx = request.headers.get("HX-Request", False)
-            template_name = self.template if is_htmx else templates.base_template_name
-            context = {"user": user, **self.context} if is_htmx else {"user": user, "content_url": request.url.path}
+            template_name = self._template if is_htmx else templates.base_template_name
+            context = {
+                "user": user,
+                **self._context
+            } if is_htmx else {
+                "user": user,
+                "content_url": request.url.path
+            }
 
             rendered = templates.as_response(
-                request=request,
                 template_name=template_name,
                 context=context,
-                headers=self.headers,
-                status_code=self.status_code,
+                response_meta=ResponseMeta(
+                    request, self._response_meta.headers, self._response_meta.status_code
+                ),
             )
 
-            for cookie in self.set_cookies:
-                rendered.set_cookie(cookie, self.set_cookies[cookie])
+            for name, cookie in self._response_meta.set_cookies.items():
+                rendered.set_cookie(name, cookie)
 
-            if self.push_path:
+            if self._response_meta.push_path:
                 rendered.headers.append("HX-Push-Url", request.url.path)
 
             return rendered

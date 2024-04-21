@@ -1,3 +1,4 @@
+"""Application dependencies."""
 import uuid
 from typing import Annotated, Optional, TypeVar, Callable
 
@@ -5,8 +6,15 @@ from fastapi import Depends, Cookie
 
 from auth.jwt import JwtTokenUtils
 from configuration import Configuration, InMemoryDbConfiguration, SqliteDbConfiguration
-from dao.server_dao import ServerDao
-from dao.user_dao import UserDao
+from dao.dao import ServerDao, UserDao
+from dao.in_memory import (
+    UserDaoImpl as InMemoryUserDao,
+    ServerDaoImpl as InMemoryServerDao,
+)
+from dao.sqlite import (
+    UserDaoImpl as SqliteUserDao,
+    ServerDaoImpl as SqliteServerDao,
+)
 from messages.rcon import RconWSConverter
 from messages.server_status import ServerStatusUpdateConverter
 from templating import TemplateProvider
@@ -15,30 +23,40 @@ DependencyT = TypeVar("DependencyT")
 
 
 class Dependencies:
+    """Container for dependencies."""
     def __init__(self):
-        self._services: dict[type[DependencyT], DependencyT] = dict()
+        self._services: dict[type[DependencyT], DependencyT] = {}
 
-    def register(self, service: DependencyT, register_type: Optional[type[DependencyT]] = None):
-        service_type = register_type if register_type else type(service)
-        self._services[service_type] = service
+    def register(self, dependency: DependencyT, register_type: Optional[type[DependencyT]] = None):
+        """
+        Registers a dependency.
+        :param dependency: Dependency to be registered
+        :param register_type: Type to register the dependency as
+        """
+        service_type = register_type if register_type else type(dependency)
+        self._services[service_type] = dependency
 
     def get(self, service_type: type[DependencyT]) -> Callable[[], DependencyT]:
+        """
+        Returns a dependency by its type.
+        :param service_type: Type of the dependency to retrieve.
+        :return: Dependency of given type.
+        """
         return lambda: self._services[service_type]
 
 
-def initialize_dao(config: Configuration) -> tuple[UserDao, ServerDao]:
+def get_daos(config: Configuration) -> tuple[UserDao, ServerDao]:
+    """Initializes data access objects"""
     match config.db_configuration:
         case InMemoryDbConfiguration():
-            from dao.in_memory import user_dao, server_dao
             return (
-                user_dao.UserDaoImpl(),
-                server_dao.ServerDaoImpl()
+                InMemoryUserDao(),
+                InMemoryServerDao()
             )
         case SqliteDbConfiguration(db_name):
-            from dao.sqlite import user_dao, server_dao
             return (
-                user_dao.UserDaoImpl(db_name),
-                server_dao.ServerDaoImpl(db_name)
+                SqliteUserDao(db_name),
+                SqliteServerDao(db_name)
             )
 
 
@@ -48,7 +66,8 @@ ioc = Dependencies()
 def get_current_user(
         jwt_utils: Annotated[JwtTokenUtils, Depends(ioc.get(JwtTokenUtils))],
         token: Annotated[Optional[str], Cookie()] = None,
-) -> Optional[str]:
+):
+    """Returns current user if authenticated, otherwise returns None."""
     if token:
         return jwt_utils.get_user(token)
     return None
@@ -58,6 +77,7 @@ def rcon_converter_factory(
         templates: Annotated[TemplateProvider, Depends(ioc.get(TemplateProvider))],
         user: Annotated[Optional[str], Depends(get_current_user)],
 ):
+    """Returns a factory for RconWSConverter for given server."""
     def create(
             server_id: uuid.UUID,
     ):
@@ -68,6 +88,7 @@ def rcon_converter_factory(
 def status_update_converter_factory(
         templates: Annotated[TemplateProvider, Depends(ioc.get(TemplateProvider))],
 ):
+    """Returns a factory for ServerStatusUpdateConverter for given server."""
     def create(
             server_id: Optional[uuid.UUID],
     ):
