@@ -85,7 +85,7 @@ class UserDaoImpl(UserDao):
         return list(map(lambda user: User(**user), self._users.values()))
 
     @override
-    async def get_by_username(self, username: str) -> Optional[UserView]:
+    async def get_view(self, username: str) -> Optional[UserView]:
         if username in self._users:
             return UserView(**self._users[username])
         return None
@@ -105,7 +105,7 @@ class UserDaoImpl(UserDao):
         self._users.pop(username, None)
 
     @override
-    async def get_with_password(self, username: str) -> Optional[User]:
+    async def get(self, username: str) -> Optional[User]:
         if username in self._users:
             return User(**self._users[username])
         return None

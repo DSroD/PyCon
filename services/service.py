@@ -59,7 +59,8 @@ class ServiceLauncher:
                 await service.launch()
             except asyncio.CancelledError:
                 await service.stop()
-                self._services.pop(task_id)
+                if task_id in self._services:
+                    self._services.pop(task_id)
                 logger.info("Service %s stopped.", service.name)
                 raise
 
@@ -80,9 +81,9 @@ class ServiceLauncher:
 
     def stop(self):
         """Cancels all service tasks."""
-        for uid in self._services:
-            task = self._services.pop(uid)
+        for task in self._services.values():
             task.cancel()
+        self._services.clear()
 
 
 class RecoverableError(Exception):

@@ -16,7 +16,7 @@ class DatabaseProvider(Enum):
 @dataclass
 class SqliteDbConfiguration:
     """Configuration of SQLite database."""
-    db_name: str
+    db_name: str = "pycon.sqlite3"
     db_provider: Literal[DatabaseProvider.SQLITE] = DatabaseProvider.SQLITE
 
 
@@ -28,8 +28,12 @@ class InMemoryDbConfiguration:
 
 class Configuration(BaseSettings):
     """Application configuration model."""
-    db_configuration: Union[SqliteDbConfiguration, InMemoryDbConfiguration]\
-        = Field(InMemoryDbConfiguration(), discriminator='db_provider')
+    db_configuration: Union[SqliteDbConfiguration, InMemoryDbConfiguration] = Field(
+        SqliteDbConfiguration(),
+        discriminator='db_provider'
+    )
     access_token_expire_minutes: int = 120
     access_token_secret: str = "<<replace-me>>"
     base_template_name: str = "base.html"
+    default_user_name: str = "admin"
+    default_user_password: str = "admin"

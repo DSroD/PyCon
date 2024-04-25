@@ -1,0 +1,50 @@
+{
+  "initialize_users_table": {
+    "type": "create_table",
+    "table_name": "users",
+    "columns": {
+      "username": "varchar",
+      "hashed_password": "varchar",
+      "disabled": "integer"
+    },
+    "pk": [
+      "username"
+    ]
+  },
+  "initialize_servers_table": {
+    "type": "create_table",
+    "table_name": "servers",
+    "columns": {
+      "uid": "varchar",
+      "type": "integer",
+      "name": "varchar",
+      "description": "varchar",
+      "host": "varchar",
+      "port": "integer",
+      "rcon_port": "integer",
+      "rcon_password": "varchar"
+    },
+    "pk": [
+      "uid"
+    ]
+  },
+  "user_servers_fk": {
+    "type": "create_table",
+    "table_name": "user_servers",
+    "columns": {
+      "username": "varchar",
+      "uid": "varchar"
+    },
+    "pk": ["username", "uid"],
+    "fk": {
+      "username": {
+        "table": "users",
+        "column": "username"
+      },
+      "uid": {
+        "table": "servers",
+        "column": "uid"
+      }
+    }
+  }
+}

@@ -21,11 +21,11 @@ async def login_post(
         notification_factory: Annotated[Callable, Depends(notification_response_factory)],
         username: Annotated[str, Form()],
         password: Annotated[str, Form()],
-        user_dao: Annotated[UserDao, Depends(ioc.get(UserDao))],
-        token_factory: Annotated[JwtTokenUtils, Depends(ioc.get(JwtTokenUtils))],
+        user_dao: Annotated[UserDao, Depends(ioc.supplier(UserDao))],
+        token_factory: Annotated[JwtTokenUtils, Depends(ioc.supplier(JwtTokenUtils))],
 ):
     """Route for login request."""
-    user = await user_dao.get_with_password(username)
+    user = await user_dao.get(username)
     if user and not user.disabled and verify_password(password, user.hashed_password):
         token = token_factory.create_access_token(user)
         return response_factory(

@@ -11,11 +11,7 @@ class Dao(ABC):  # pylint: disable=too-few-public-methods
     """Base interface for all data access objects."""
     @abstractmethod
     async def initialize(self):
-        """
-        Initializes the data access object.
-
-        :return:
-        """
+        """Initializes the data access object."""
 
 
 class ServerDao(Dao, ABC):
@@ -57,7 +53,7 @@ class UserDao(Dao, ABC):
         :return: List of users.
         """
     @abstractmethod
-    async def get_by_username(self, username: str) -> Optional[UserView]:
+    async def get_view(self, username: str) -> Optional[UserView]:
         """
         Returns user by username.
 
@@ -85,7 +81,7 @@ class UserDao(Dao, ABC):
         """
 
     @abstractmethod
-    async def get_with_password(self, username: str) -> Optional[User]:
+    async def get(self, username: str) -> Optional[User]:
         """
         Gets hashed password of a user (if exists).
 

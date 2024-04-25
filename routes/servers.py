@@ -26,10 +26,13 @@ router = APIRouter()
 
 @router.get("/servers", tags=["servers"])
 async def servers(
-        server_dao: Annotated[ServerDao, Depends(ioc.get(ServerDao))],
+        server_dao: Annotated[ServerDao, Depends(ioc.supplier(ServerDao))],
         user: Annotated[str, Depends(get_current_user)],
         response_factory: Annotated[type[HtmxResponse], Depends(htmx_response_factory)],
-        server_status_service: Annotated[ServerStatusService, Depends(ioc.get(ServerStatusService))]
+        server_status_service: Annotated[
+            ServerStatusService,
+            Depends(ioc.supplier(ServerStatusService))
+        ]
 ):
     """Route for getting all servers list."""
     if user is None:
@@ -49,10 +52,13 @@ async def servers(
 @router.get("/servers/{server_id}", tags=["servers"])
 async def server(
         server_id: str,
-        server_dao: Annotated[ServerDao, Depends(ioc.get(ServerDao))],
+        server_dao: Annotated[ServerDao, Depends(ioc.supplier(ServerDao))],
         user: Annotated[str, Depends(get_current_user)],
         response_factory: Annotated[type[HtmxResponse], Depends(htmx_response_factory)],
-        server_status_service: Annotated[ServerStatusService, Depends(ioc.get(ServerStatusService))]
+        server_status_service: Annotated[
+            ServerStatusService,
+            Depends(ioc.supplier(ServerStatusService))
+        ]
 ):
     """Route for getting a specific server detail by id."""
     if user is None:
@@ -77,7 +83,7 @@ async def server(
 @router.websocket("/servers/updates")
 async def updates(
         websocket: WebSocket,
-        pubsub: Annotated[PubSub, Depends(ioc.get(PubSub))],
+        pubsub: Annotated[PubSub, Depends(ioc.supplier(PubSub))],
         user: Annotated[str, Depends(get_current_user)],
         converter_factory: Annotated[Callable[
             [Optional[uuid.UUID]],
@@ -104,7 +110,7 @@ async def updates(
 async def detail_updates(
         websocket: WebSocket,
         server_id: str,
-        pubsub: Annotated[PubSub, Depends(ioc.get(PubSub))],
+        pubsub: Annotated[PubSub, Depends(ioc.supplier(PubSub))],
         user: Annotated[str, Depends(get_current_user)],
         converter_factory: Annotated[Callable[
             [Optional[uuid.UUID]],
@@ -133,7 +139,7 @@ async def detail_updates(
 async def command(
         websocket: WebSocket,
         server_id: str,
-        pubsub: Annotated[PubSub, Depends(ioc.get(PubSub))],
+        pubsub: Annotated[PubSub, Depends(ioc.supplier(PubSub))],
         user: Annotated[str, Depends(get_current_user)],
         converter_factory: Annotated[
             Callable[[uuid.UUID], RconWSConverter],

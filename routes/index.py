@@ -29,8 +29,10 @@ async def root(
 @router.websocket("/heartbeat")
 async def heartbeat(
         websocket: WebSocket,
-        pubsub: Annotated[PubSub, Depends(ioc.get(PubSub))],
-        heartbeat_converter: Annotated[HeartbeatConverter, Depends(ioc.get(HeartbeatConverter))],
+        pubsub: Annotated[PubSub, Depends(ioc.supplier(PubSub))],
+        heartbeat_converter: Annotated[
+            HeartbeatConverter, Depends(ioc.supplier(HeartbeatConverter))
+        ],
 ):
     """Websocket route for heartbeats."""
     await WsProcessor(
@@ -48,10 +50,10 @@ async def heartbeat(
 async def notifications(
         websocket: WebSocket,
         user: Annotated[str | None, Depends(get_current_user)],
-        pubsub: Annotated[PubSub, Depends(ioc.get(PubSub))],
+        pubsub: Annotated[PubSub, Depends(ioc.supplier(PubSub))],
         notification_converter: Annotated[
             NotificationConverter,
-            Depends(ioc.get(NotificationConverter))
+            Depends(ioc.supplier(NotificationConverter))
         ],
 ):
     """Websocket route for notifications."""

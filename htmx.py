@@ -42,7 +42,7 @@ class HtmxResponse(ABC):
 def htmx_response_factory(
         request: Request,
         user: Annotated[Optional[str], Depends(get_current_user)],
-        templates: Annotated[TemplateProvider, Depends(ioc.get(TemplateProvider))],
+        templates: Annotated[TemplateProvider, Depends(ioc.supplier(TemplateProvider))],
 ):
     """Factory for HTMX responses."""
     class HtmxResponseImpl(HtmxResponse):

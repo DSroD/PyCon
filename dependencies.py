@@ -4,6 +4,7 @@ from typing import Annotated, Optional, TypeVar, Callable
 
 from fastapi import Depends, Cookie
 
+import migrator.sqlite
 from auth.jwt import JwtTokenUtils
 from configuration import Configuration, InMemoryDbConfiguration, SqliteDbConfiguration
 from dao.dao import ServerDao, UserDao
@@ -36,17 +37,25 @@ class Dependencies:
         service_type = register_type if register_type else type(dependency)
         self._services[service_type] = dependency
 
-    def get(self, service_type: type[DependencyT]) -> Callable[[], DependencyT]:
+    def supplier(self, service_type: type[DependencyT]) -> Callable[[], DependencyT]:
+        """
+        Returns a dependency supplier by its type.
+        :param service_type: Type of the dependency to retrieve.
+        :return: Dependency supplier of given type.
+        """
+        return lambda: self._services[service_type]
+
+    def get(self, service_type: type[DependencyT]) -> DependencyT:
         """
         Returns a dependency by its type.
         :param service_type: Type of the dependency to retrieve.
         :return: Dependency of given type.
         """
-        return lambda: self._services[service_type]
+        return self._services[service_type]
 
 
 def get_daos(config: Configuration) -> tuple[UserDao, ServerDao]:
-    """Initializes data access objects"""
+    """Initializes data access objects."""
     match config.db_configuration:
         case InMemoryDbConfiguration():
             return (
@@ -60,11 +69,27 @@ def get_daos(config: Configuration) -> tuple[UserDao, ServerDao]:
             )
 
 
+def migrator_factory(config: Configuration) -> Callable[[],None]:
+    """
+    Creates callable that performs migration for configured
+    persistence provider.
+    """
+    match config.db_configuration:
+        case InMemoryDbConfiguration():
+            def noop():
+                pass
+            return noop
+        case SqliteDbConfiguration(db_name):
+            def sqlite_migrate():
+                migrator.sqlite.migrate(db_name)
+            return sqlite_migrate
+
+
 ioc = Dependencies()
 
 
 def get_current_user(
-        jwt_utils: Annotated[JwtTokenUtils, Depends(ioc.get(JwtTokenUtils))],
+        jwt_utils: Annotated[JwtTokenUtils, Depends(ioc.supplier(JwtTokenUtils))],
         token: Annotated[Optional[str], Cookie()] = None,
 ):
     """Returns current user if authenticated, otherwise returns None."""
@@ -74,7 +99,7 @@ def get_current_user(
 
 
 def rcon_converter_factory(
-        templates: Annotated[TemplateProvider, Depends(ioc.get(TemplateProvider))],
+        templates: Annotated[TemplateProvider, Depends(ioc.supplier(TemplateProvider))],
         user: Annotated[Optional[str], Depends(get_current_user)],
 ):
     """Returns a factory for RconWSConverter for given server."""
@@ -86,7 +111,7 @@ def rcon_converter_factory(
 
 
 def status_update_converter_factory(
-        templates: Annotated[TemplateProvider, Depends(ioc.get(TemplateProvider))],
+        templates: Annotated[TemplateProvider, Depends(ioc.supplier(TemplateProvider))],
 ):
     """Returns a factory for ServerStatusUpdateConverter for given server."""
     def create(
