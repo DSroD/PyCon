@@ -40,14 +40,26 @@ def _cols_gen(op: dict):
 
 
 def _pk_gen(op: dict):
-    pk: list[str] = op["pk"]
-    yield f"PRIMARY KEY({','.join(pk)})"
+    pk: list[str] | str = op["pk"]
+    if isinstance(pk, str):
+        yield f"PRIMARY KEY ({pk})"
+    else:
+        yield f"PRIMARY KEY({','.join(pk)})"
 
 
 def _fk_gen(op: dict):
     fks: dict[str, dict[str, str]] = op["fk"] if "fk" in op else {}
     for col, fk in fks.items():
         yield f"FOREIGN KEY({col}) REFERENCES {fk['table']}({fk['column']})"
+
+
+def _unique_gen(op: dict):
+    uniques: list[list[str] | str] = op["unique"] if "unique" in op else []
+    for unique in uniques:
+        if isinstance(unique, str):
+            yield f"UNIQUE({unique})"
+        else:
+            yield f"UNIQUE({','.join(unique)})"
 
 
 def _create_table(con: Connection, op: dict):
@@ -57,7 +69,8 @@ def _create_table(con: Connection, op: dict):
         itertools.chain(
             _cols_gen(op),
             _pk_gen(op),
-            _fk_gen(op)
+            _fk_gen(op),
+            _unique_gen(op),
         )
     )
 
@@ -78,7 +91,8 @@ def migrate(
         db_name: str
 ):
     """Performs sqlite db migrations from migrations.json file"""
-    with sqlite3.connect(db_name) as con:
+    con = sqlite3.connect(db_name)
+    with con:
         _create_if_not_exists(con)
 
         applied = _get_migrations(con)
@@ -88,6 +102,8 @@ def migrate(
                 if mig_name in applied:
                     continue
                 _apply_mig(con, mig_name, mig_op)
+
+    con.close()
 
 
 migrate("pycon.sqlite3")

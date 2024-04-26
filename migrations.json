@@ -7,9 +7,7 @@
       "hashed_password": "varchar",
       "disabled": "integer"
     },
-    "pk": [
-      "username"
-    ]
+    "pk": "username"
   },
   "initialize_servers_table": {
     "type": "create_table",
@@ -24,9 +22,7 @@
       "rcon_port": "integer",
       "rcon_password": "varchar"
     },
-    "pk": [
-      "uid"
-    ]
+    "pk": "uid"
   },
   "user_servers_fk": {
     "type": "create_table",
@@ -46,5 +42,24 @@
         "column": "uid"
       }
     }
+  },
+  "user_capabilities": {
+    "type": "create_table",
+    "table_name": "user_capabilities",
+    "columns": {
+      "id": "integer",
+      "username": "varchar",
+      "capability": "varchar"
+    },
+    "pk": "id",
+    "fk": {
+      "username": {
+        "table": "users",
+        "column": "username"
+      }
+    },
+    "unique": [
+      ["username", "capability"]
+    ]
   }
 }

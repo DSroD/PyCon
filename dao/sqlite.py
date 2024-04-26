@@ -2,12 +2,13 @@
 
 import sqlite3
 import uuid
-from typing import Optional, List, override
+from contextlib import contextmanager
+from typing import Optional, override
 
 from dao.dao import ServerDao, UserDao
 from models.server import Server
-from models.user import UserView, User
-from utils.sqlite import model_mapper
+from models.user import UserView, User, UserCapability
+from utils.sqlite import model_mapper, enum_mapper
 
 
 class UserDaoImpl(UserDao):
@@ -16,17 +17,19 @@ class UserDaoImpl(UserDao):
     def __init__(self, db_name):
         self._db_name = db_name
 
-    def _conn(self, row_factory=model_mapper(User)):
+    @contextmanager
+    def _conn(self):
         con = sqlite3.connect(self._db_name)
-        con.row_factory = row_factory
-        return con
+        con.row_factory = sqlite3.Row
+        yield con
+        con.close()
 
     @override
     async def initialize(self):
         pass
 
     @override
-    async def get_all(self) -> List[UserView]:
+    async def get_all(self) -> list[UserView]:
         pass
 
     @override
@@ -35,16 +38,28 @@ class UserDaoImpl(UserDao):
             pass
 
     @override
-    async def create_user(self, username: str, hashed_password: str) -> Optional[UserView]:
+    async def create_user(
+            self,
+            username: str,
+            hashed_password: str,
+            capabilities: list[UserCapability],
+    ) -> Optional[UserView]:
         with self._conn() as con:
-            try:
-                con.execute(
-                    "INSERT INTO users VALUES (?, ?, 0)", (username, hashed_password)
-                )
-            except sqlite3.IntegrityError:
-                return None
+            with con:
+                try:
+                    caps = list(map(lambda cap: (username, cap.name), capabilities))
+                    con.execute(
+                        "INSERT INTO users VALUES (?, ?, 0)", (username, hashed_password)
+                    )
+                    con.executemany(
+                        "INSERT INTO user_capabilities(username, capability) VALUES (?, ?)",
+                        caps
 
-            return UserView(username=username)  # TODO: get from db?
+                    )
+                except sqlite3.IntegrityError:  # TODO: better error handling
+                    return None
+
+            return UserView(username=username, capabilities=capabilities)  # TODO: get from db?
 
     @override
     async def delete_user(self, username: str) -> None:
@@ -53,16 +68,38 @@ class UserDaoImpl(UserDao):
     @override
     async def get(self, username: str) -> Optional[User]:
         with self._conn() as con:
-            cur = con.execute(
+            user_cur = con.execute(
                 "SELECT username, hashed_password, disabled FROM users WHERE username = ?",
                 (username,)
             )
+            user = user_cur.fetchone()
+            cap_cur = con.execute(
+                "SELECT capability FROM user_capabilities WHERE username = ?",
+                (username,)
+            )
+            curs: list[sqlite3.Row] = cap_cur.fetchall()
+            caps = list(map(lambda x: (x["capability"],), curs))
 
-            return cur.fetchone()
+            return User(
+                username=user["username"],
+                hashed_password=user["hashed_password"],
+                disabled=user["disabled"],
+                capabilities=caps
+            )
 
     @override
     async def set_disabled(self, username: str, disabled: bool) -> None:
         pass
+
+    @override
+    async def get_capabilities(self, username: str) -> list[UserCapability]:
+        with self._conn() as con:
+            cur = con.execute(
+                "SELECT capability FROM user_capabilities WHERE username = ?",
+            )
+            cur.rowfactory = enum_mapper(UserCapability)
+
+            return cur.fetchall()
 
 
 class ServerDaoImpl(ServerDao):
@@ -71,17 +108,19 @@ class ServerDaoImpl(ServerDao):
     def __init__(self, db_name):
         self._db_name = db_name
 
+    @contextmanager
     def _conn(self, row_factory=model_mapper(Server)):
         con = sqlite3.connect(self._db_name)
         con.row_factory = row_factory
-        return con
+        yield con
+        con.close()
 
     @override
     async def initialize(self):
         pass
 
     @override
-    async def get_all(self) -> List[Server]:
+    async def get_all(self) -> list[Server]:
         with self._conn() as con:
             cur = con.execute(
                 """
@@ -93,7 +132,7 @@ class ServerDaoImpl(ServerDao):
             return cur.fetchall()
 
     @override
-    async def get_user_servers(self, username: str) -> List[Server]:
+    async def get_user_servers(self, username: str) -> list[Server]:
         with self._conn() as con:
             cur = con.execute(
                 """

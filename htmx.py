@@ -9,6 +9,7 @@ from fastapi.responses import Response
 from fastapi.templating import Jinja2Templates
 
 from dependencies import get_current_user, ioc
+from models.user import UserView
 from templating import TemplateProvider, ResponseMeta
 
 
@@ -41,7 +42,7 @@ class HtmxResponse(ABC):
 
 def htmx_response_factory(
         request: Request,
-        user: Annotated[Optional[str], Depends(get_current_user)],
+        user: Annotated[Optional[UserView], Depends(get_current_user)],
         templates: Annotated[TemplateProvider, Depends(ioc.supplier(TemplateProvider))],
 ):
     """Factory for HTMX responses."""

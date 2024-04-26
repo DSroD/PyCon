@@ -5,7 +5,7 @@ from typing import List, Optional, override
 
 from dao.dao import ServerDao, UserDao
 from models.server import Server
-from models.user import UserView, User
+from models.user import UserView, User, UserCapability
 
 
 class ServerDaoImpl(ServerDao):
@@ -60,6 +60,7 @@ class ServerDaoImpl(ServerDao):
 
 class UserDaoImpl(UserDao):
     """InMemory implementation of UserDao."""
+
     def __init__(self):
         self._users = {
             "test": {
@@ -67,6 +68,10 @@ class UserDaoImpl(UserDao):
                 # pwd: test
                 "hashed_password": "$2b$12$G5zIWm/IHBJwlFxReXNZdu9N7SNCQXe9JKlzSIqWZCzSIFjAlcY.e",
                 "disabled": False,
+                "capabilities": [
+                    UserCapability.USER_MANAGEMENT,
+                    UserCapability.SERVER_MANAGEMENT,
+                ]
             },
             "test2": {
                 "username": "test2",
@@ -91,13 +96,19 @@ class UserDaoImpl(UserDao):
         return None
 
     @override
-    async def create_user(self, username: str, hashed_password: str) -> Optional[UserView]:
+    async def create_user(
+            self,
+            username: str,
+            hashed_password: str,
+            capabilities: list[UserCapability],
+    ) -> Optional[UserView]:
         if username in self._users:
             return None
         self._users[username] = {
             "username": username,
             "hashed_password": hashed_password,
-            "disabled": False
+            "disabled": False,
+            "capabilities": capabilities,
         }
 
     @override
@@ -114,3 +125,8 @@ class UserDaoImpl(UserDao):
     async def set_disabled(self, username: str, disabled: bool) -> None:
         if username in self._users:
             self._users[username]["disabled"] = disabled
+
+    @override
+    async def get_capabilities(self, username: str) -> list[UserCapability]:
+        if username in self._users:
+            return self._users[username]["capabilities"]

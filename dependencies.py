@@ -18,6 +18,7 @@ from dao.sqlite import (
 )
 from messages.rcon import RconWSConverter
 from messages.server_status import ServerStatusUpdateConverter
+from models.user import UserView
 from templating import TemplateProvider
 
 DependencyT = TypeVar("DependencyT")
@@ -100,13 +101,13 @@ def get_current_user(
 
 def rcon_converter_factory(
         templates: Annotated[TemplateProvider, Depends(ioc.supplier(TemplateProvider))],
-        user: Annotated[Optional[str], Depends(get_current_user)],
+        user: Annotated[Optional[UserView], Depends(get_current_user)],
 ):
     """Returns a factory for RconWSConverter for given server."""
     def create(
             server_id: uuid.UUID,
     ):
-        return RconWSConverter(server_id, user, templates.get_template)
+        return RconWSConverter(server_id, user.username, templates.get_template)
     return create
 
 

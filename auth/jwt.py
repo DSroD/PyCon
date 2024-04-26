@@ -2,15 +2,16 @@
 from datetime import timedelta, datetime, timezone, tzinfo
 from typing import Optional, Callable
 
-from jose import jwt, JWTError
+import jwt
 
 from models.user import UserView
 
 
 class JwtTokenUtils:
     """
-    JwtTokenUtils class provides utility functions for JWT tokens - creation of.
+    JWT Token Utilities.
 
+    JwtTokenUtils class provides utility functions for JWT tokens - creation of.
     tokens and retrieval of data from JWT tokens.
     """
     def __init__(
@@ -20,8 +21,8 @@ class JwtTokenUtils:
             time_provider: Callable[[tzinfo], datetime] = datetime.now,
     ):
         """
+        JwtTokenUtils class provides utility functions for JWT tokens.
         :param secret_key: Key for generating JWT tokens.
-
         :param access_token_expiry: Expiry time for JWT tokens.
         """
         self._secret_key = secret_key
@@ -36,13 +37,14 @@ class JwtTokenUtils:
         :return: JWT access token.
         """
         data_to_encode = {
-            'sub': user.username,
-            'exp': self._time_provider(timezone.utc) + self._access_token_expiry
+            "sub": user.username,
+            "exp": self._time_provider(timezone.utc) + self._access_token_expiry,
+            "scope": list(map(lambda cap: cap.name, user.capabilities)),
         }
         encoded = jwt.encode(data_to_encode, self._secret_key, algorithm='HS512')
         return encoded
 
-    def get_user(self, token: str) -> Optional[str]:
+    def get_user(self, token: str) -> Optional[UserView]:
         """
         Retrieves a username from JWT token.
 
@@ -52,6 +54,11 @@ class JwtTokenUtils:
         try:
             payload = jwt.decode(token, self._secret_key, algorithms=['HS512'])
             username = payload.get('sub', None)
-            return username
-        except JWTError:
+            cap_names = payload.get('scope', [])
+            caps = list(map(lambda cap: (cap,), cap_names))
+            return UserView(
+                username=username,
+                capabilities=caps,
+            )
+        except jwt.exceptions.PyJWTError:
             return None

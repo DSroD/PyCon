@@ -52,10 +52,14 @@ class MinecraftRconIntegrationTests(unittest.IsolatedAsyncioTestCase):
             def on_response(packet):
                 responses.append(packet)
                 read_task.cancel()
+            try:
+                read_task = asyncio.create_task(client.read(on_response))
+                write_task = asyncio.create_task(client.send_command(command))
 
-            read_task = asyncio.create_task(client.read(on_response))
-            write_task = asyncio.create_task(client.send_command(command))
+                await asyncio.wait([read_task, write_task])
+            except asyncio.IncompleteReadError:
+                # Cancelling the task can fire this error in read coroutine, failing the test
+                pass
 
-            await asyncio.wait([read_task, write_task])
             self.assertEqual(1, len(responses))
             self.assertEqual("Set the time to 1000", responses[0].response)

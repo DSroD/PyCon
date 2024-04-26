@@ -40,7 +40,7 @@
 
 {% if user|default(False) %}
 <section hx-ext="ws" class="fixed top right tool-bar padding">
-    <span>Logged in as: {{ user }}</span>
+    <span>Logged in as: {{ user.username }}</span>
     <hr aria-orientation="vertical">
     <span ws-connect="/heartbeat" id="heartbeat"></span>
     <div hidden ws-connect="/notifications" id="notifications-ws"></div>

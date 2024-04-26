@@ -5,7 +5,7 @@ from datetime import timedelta, datetime
 
 from auth import hashing
 from auth.jwt import JwtTokenUtils
-from models.user import UserView
+from models.user import UserView, UserCapability
 from tests.utils import TestTimeProvider
 
 
@@ -29,13 +29,14 @@ class AuthTests(unittest.TestCase):
         username = "test user name"
         user = UserView(
             username=username,
+            capabilities=[UserCapability.SERVER_MANAGEMENT],
         )
 
         token = self.token_utils.create_access_token(user)
 
         username_from_token = self.token_utils.get_user(token)
 
-        self.assertEqual(username, username_from_token)
+        self.assertEqual(user, username_from_token)
 
     def test_token_duration(self):
         """Ensures token duration is validated"""
@@ -49,6 +50,7 @@ class AuthTests(unittest.TestCase):
         name = "test user"
         user = UserView(
             username=name,
+            capabilities=[]
         )
 
         # token1 is 5 minutes expired when checked
@@ -64,5 +66,5 @@ class AuthTests(unittest.TestCase):
         # token2 still has 5 minutes of lifetime
         token2 = token_utils.create_access_token(user)
         user_from_token2 = token_utils.get_user(token2)
-        self.assertEqual(name, user_from_token2)
+        self.assertEqual(user, user_from_token2)
         self.assertEqual(None, user_from_token1)

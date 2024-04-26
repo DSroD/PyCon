@@ -1,6 +1,6 @@
 """Main routes."""
 # pylint: disable=too-many-function-args
-from typing import Annotated
+from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends
 from fastapi.websockets import WebSocket
@@ -9,6 +9,7 @@ from dependencies import get_current_user, ioc
 from htmx import HtmxResponse, htmx_response_factory
 from messages.heartbeat import HeartbeatConverter, heartbeat_topic
 from messages.notifications import NotificationConverter, notification_topic
+from models.user import UserView
 from pubsub.filter import FieldEquals, FieldContains
 from pubsub.pubsub import PubSub
 from websocket_processor import WebsocketProcessor as WsProcessor, WebsocketPubSub
@@ -49,7 +50,7 @@ async def heartbeat(
 @router.websocket("/notifications")
 async def notifications(
         websocket: WebSocket,
-        user: Annotated[str | None, Depends(get_current_user)],
+        user: Annotated[Optional[UserView], Depends(get_current_user)],
         pubsub: Annotated[PubSub, Depends(ioc.supplier(PubSub))],
         notification_converter: Annotated[
             NotificationConverter,
@@ -68,6 +69,6 @@ async def notifications(
             None,
             notification_topic,
             FieldEquals(lambda msg: msg.audience, "all")
-            | FieldContains(lambda msg: msg.audience, user)
+            | FieldContains(lambda msg: msg.audience, user.username)
         ),
     ).process()

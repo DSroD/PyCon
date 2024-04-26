@@ -110,6 +110,7 @@ class RconClient:
             match packet:
                 case CommandResponse(request_id, payload):
                     if request_id in self._requests:
+                        # Response to end packet received - process responses
                         on_response(self._process_command_response(request_id))
                     else:
                         self._responses[request_id].append(payload)

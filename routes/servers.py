@@ -16,6 +16,7 @@ from dependencies import (
 from htmx import HtmxResponse, htmx_response_factory
 from messages.rcon import RconWSConverter, rcon_command_topic, rcon_response_topic
 from messages.server_status import ServerStatusUpdateConverter, server_status_topic
+from models.user import UserView
 from pubsub.filter import FieldEquals
 from pubsub.pubsub import PubSub
 from services.server_status import ServerStatusService
@@ -27,7 +28,7 @@ router = APIRouter()
 @router.get("/servers", tags=["servers"])
 async def servers(
         server_dao: Annotated[ServerDao, Depends(ioc.supplier(ServerDao))],
-        user: Annotated[str, Depends(get_current_user)],
+        user: Annotated[Optional[UserView], Depends(get_current_user)],
         response_factory: Annotated[type[HtmxResponse], Depends(htmx_response_factory)],
         server_status_service: Annotated[
             ServerStatusService,
@@ -37,7 +38,7 @@ async def servers(
     """Route for getting all servers list."""
     if user is None:
         raise HTTPException(status_code=401)
-    user_servers = await server_dao.get_user_servers(user)
+    user_servers = await server_dao.get_user_servers(user.username)
     server_statuses = server_status_service.get_states({s.uid for s in user_servers})
 
     return response_factory(
@@ -53,7 +54,7 @@ async def servers(
 async def server(
         server_id: str,
         server_dao: Annotated[ServerDao, Depends(ioc.supplier(ServerDao))],
-        user: Annotated[str, Depends(get_current_user)],
+        user: Annotated[Optional[UserView], Depends(get_current_user)],
         response_factory: Annotated[type[HtmxResponse], Depends(htmx_response_factory)],
         server_status_service: Annotated[
             ServerStatusService,
@@ -74,7 +75,6 @@ async def server(
         template="servers/detail.html",
         context={
             "server": server_from_db,
-            "user": user,
             "server_status": server_status
         },
     ).to_response()
@@ -84,7 +84,7 @@ async def server(
 async def updates(
         websocket: WebSocket,
         pubsub: Annotated[PubSub, Depends(ioc.supplier(PubSub))],
-        user: Annotated[str, Depends(get_current_user)],
+        user: Annotated[Optional[UserView], Depends(get_current_user)],
         converter_factory: Annotated[Callable[
             [Optional[uuid.UUID]],
             ServerStatusUpdateConverter],
@@ -111,7 +111,7 @@ async def detail_updates(
         websocket: WebSocket,
         server_id: str,
         pubsub: Annotated[PubSub, Depends(ioc.supplier(PubSub))],
-        user: Annotated[str, Depends(get_current_user)],
+        user: Annotated[Optional[UserView], Depends(get_current_user)],
         converter_factory: Annotated[Callable[
             [Optional[uuid.UUID]],
             ServerStatusUpdateConverter],
@@ -140,7 +140,7 @@ async def command(
         websocket: WebSocket,
         server_id: str,
         pubsub: Annotated[PubSub, Depends(ioc.supplier(PubSub))],
-        user: Annotated[str, Depends(get_current_user)],
+        user: Annotated[Optional[UserView], Depends(get_current_user)],
         converter_factory: Annotated[
             Callable[[uuid.UUID], RconWSConverter],
             Depends(rcon_converter_factory)
