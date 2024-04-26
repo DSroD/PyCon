@@ -19,7 +19,7 @@ class UserDaoImpl(UserDao):
 
     @contextmanager
     def _conn(self):
-        con = sqlite3.connect(self._db_name, uri=self._db_name.startswith('file:'))
+        con = sqlite3.connect(self._db_name)
         con.row_factory = sqlite3.Row
         yield con
         con.close()
@@ -27,9 +27,9 @@ class UserDaoImpl(UserDao):
     @override
     async def get_all_usernames(self) -> list[str]:
         with self._conn() as con:
-            con.execute("SELECT username FROM users")
+            cur = con.execute("SELECT username FROM users")
 
-            rows = con.fetchall()
+            rows = cur.fetchall()
             return list(map(lambda x: x['username'], rows))
 
     @override
@@ -130,9 +130,9 @@ class ServerDaoImpl(ServerDao):
         self._db_name = db_name
 
     @contextmanager
-    def _conn(self, row_factory=model_mapper(Server)):
-        con = sqlite3.connect(self._db_name, uri=self._db_name.startswith('file:'))
-        con.row_factory = row_factory
+    def _conn(self, row_factory=None):
+        con = sqlite3.connect(self._db_name)
+        con.row_factory = row_factory if row_factory else sqlite3.Row
         yield con
         con.close()
 
@@ -145,6 +145,7 @@ class ServerDaoImpl(ServerDao):
                 FROM servers
                 """
             )
+            cur.rowfactory = model_mapper(Server)
 
             return cur.fetchall()
 
@@ -159,6 +160,7 @@ class ServerDaoImpl(ServerDao):
                 """,
                 (username,)
             )
+            cur.rowfactory = model_mapper(Server)
 
             return cur.fetchall()
 

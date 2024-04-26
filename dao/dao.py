@@ -35,6 +35,9 @@ class ServerDao(ABC):
         :return: Server with given UUID
         """
 
+    @abstractmethod
+    async def create(self, server: Server) -> Optional[Server]:
+        pass
 
 class UserDao(ABC):
     """Data access object for user data."""

@@ -88,11 +88,12 @@ def _apply_mig(con: Connection, mig_name: str, mig_op: dict):
 
 
 def migrate(
-        db: str,
+        db: str | Connection,
         migrations_file="migrations.json",
+        close=True
 ):
     """Performs sqlite db migrations from migrations.json file"""
-    con = sqlite3.connect(db, uri=db.startswith("file:"))
+    con = sqlite3.connect(db) if isinstance(db, str) else db
     with con:
         _create_if_not_exists(con)
 
@@ -103,5 +104,5 @@ def migrate(
                 if mig_name in applied:
                     continue
                 _apply_mig(con, mig_name, mig_op)
-
-    con.close()
+    if close:
+        con.close()
