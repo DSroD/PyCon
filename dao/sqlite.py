@@ -1,5 +1,4 @@
 """SQLite backed implementation of DAOs."""
-
 import sqlite3
 import uuid
 from contextlib import contextmanager
@@ -16,26 +15,50 @@ class UserDaoImpl(UserDao):
 
     def __init__(self, db_name):
         self._db_name = db_name
+        self.con = None
 
     @contextmanager
     def _conn(self):
-        con = sqlite3.connect(self._db_name)
+        con = sqlite3.connect(self._db_name, uri=self._db_name.startswith('file:'))
         con.row_factory = sqlite3.Row
         yield con
         con.close()
 
     @override
-    async def initialize(self):
-        pass
+    async def get_all_usernames(self) -> list[str]:
+        with self._conn() as con:
+            con.execute("SELECT username FROM users")
 
-    @override
-    async def get_all(self) -> list[UserView]:
-        pass
+            rows = con.fetchall()
+            return list(map(lambda x: x['username'], rows))
 
     @override
     async def get_view(self, username: str) -> Optional[UserView]:
         with self._conn() as con:
-            pass
+            user_cur = con.execute(
+                "SELECT username FROM users WHERE username = ?",
+                (username,)
+            )
+            user = user_cur.fetchone()
+            if not user:
+                return None
+
+            caps = await self._get_user_capabilities(con, username)
+
+            return UserView(
+                username=user["username"],
+                capabilities=caps
+            )
+
+    @staticmethod
+    async def _get_user_capabilities(con, username):
+        cap_cur = con.execute(
+            "SELECT capability FROM user_capabilities WHERE username = ?",
+            (username,)
+        )
+        cap_rows: list[sqlite3.Row] = cap_cur.fetchall()
+        caps = list(map(lambda x: (x["capability"],), cap_rows))
+        return caps
 
     @override
     async def create_user(
@@ -73,12 +96,10 @@ class UserDaoImpl(UserDao):
                 (username,)
             )
             user = user_cur.fetchone()
-            cap_cur = con.execute(
-                "SELECT capability FROM user_capabilities WHERE username = ?",
-                (username,)
-            )
-            curs: list[sqlite3.Row] = cap_cur.fetchall()
-            caps = list(map(lambda x: (x["capability"],), curs))
+            if not user:
+                return None
+
+            caps = await self._get_user_capabilities(con, username)
 
             return User(
                 username=user["username"],
@@ -110,14 +131,10 @@ class ServerDaoImpl(ServerDao):
 
     @contextmanager
     def _conn(self, row_factory=model_mapper(Server)):
-        con = sqlite3.connect(self._db_name)
+        con = sqlite3.connect(self._db_name, uri=self._db_name.startswith('file:'))
         con.row_factory = row_factory
         yield con
         con.close()
-
-    @override
-    async def initialize(self):
-        pass
 
     @override
     async def get_all(self) -> list[Server]:

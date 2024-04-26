@@ -7,14 +7,7 @@ from models.server import Server
 from models.user import UserView, User, UserCapability
 
 
-class Dao(ABC):  # pylint: disable=too-few-public-methods
-    """Base interface for all data access objects."""
-    @abstractmethod
-    async def initialize(self):
-        """Initializes the data access object."""
-
-
-class ServerDao(Dao, ABC):
+class ServerDao(ABC):
     """Data access object for servers."""
     @abstractmethod
     async def get_all(self) -> list[Server]:
@@ -43,10 +36,10 @@ class ServerDao(Dao, ABC):
         """
 
 
-class UserDao(Dao, ABC):
+class UserDao(ABC):
     """Data access object for user data."""
     @abstractmethod
-    async def get_all(self) -> list[UserView]:
+    async def get_all_usernames(self) -> list[str]:
         """
         Returns list of all users.
 

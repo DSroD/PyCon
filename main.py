@@ -32,8 +32,7 @@ service_launcher = ServiceLauncher(ioc)
 pubsub: PubSub = InProcessPubSub()
 ioc.register(pubsub, PubSub)
 
-daos = get_daos(configuration)
-(user_dao, server_dao) = daos
+(user_dao, server_dao) = get_daos(configuration)
 
 ioc.register(user_dao, UserDao)
 ioc.register(server_dao, ServerDao)
@@ -57,14 +56,10 @@ async def startup():
     migrate = migrator_factory(configuration)
     migrate()
 
-    for dao in daos:
-        if dao:
-            await dao.initialize()
-
     # Default user init
     default_user_pwd = hash_password(configuration.default_user_password)
 
-    await daos[0].create_user(
+    await user_dao.create_user(
         configuration.default_user_name,
         default_user_pwd,
         [

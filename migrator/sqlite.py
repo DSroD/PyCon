@@ -88,15 +88,16 @@ def _apply_mig(con: Connection, mig_name: str, mig_op: dict):
 
 
 def migrate(
-        db_name: str
+        db: str,
+        migrations_file="migrations.json",
 ):
     """Performs sqlite db migrations from migrations.json file"""
-    con = sqlite3.connect(db_name)
+    con = sqlite3.connect(db, uri=db.startswith("file:"))
     with con:
         _create_if_not_exists(con)
 
         applied = _get_migrations(con)
-        with open("migrations.json", "r", encoding='utf-8') as mig_file:
+        with open(migrations_file, "r", encoding='utf-8') as mig_file:
             migs = json.load(mig_file)
             for mig_name, mig_op in migs.items():
                 if mig_name in applied:
@@ -104,6 +105,3 @@ def migrate(
                 _apply_mig(con, mig_name, mig_op)
 
     con.close()
-
-
-migrate("pycon.sqlite3")

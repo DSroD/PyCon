@@ -36,9 +36,6 @@ class ServerDaoImpl(ServerDao):
             }
         }
 
-    async def initialize(self):
-        pass
-
     @override
     async def get_user_servers(self, username: str) -> List[Server]:
         return [
@@ -82,12 +79,8 @@ class UserDaoImpl(UserDao):
         }
 
     @override
-    async def initialize(self):
-        pass
-
-    @override
-    async def get_all(self) -> List[UserView]:
-        return list(map(lambda user: User(**user), self._users.values()))
+    async def get_all_usernames(self) -> List[str]:
+        return list(map(lambda user: user["username"], self._users.values()))
 
     @override
     async def get_view(self, username: str) -> Optional[UserView]:
