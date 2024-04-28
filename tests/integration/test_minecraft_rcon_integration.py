@@ -49,12 +49,16 @@ class MinecraftRconIntegrationTests(unittest.IsolatedAsyncioTestCase):
 
             responses = []
 
+            async def send_task():
+                await client.send_command(command)
+                await asyncio.sleep(0.5)  # Additional delay for task to end later
+
             def on_response(packet):
                 responses.append(packet)
                 read_task.cancel()
             try:
                 read_task = asyncio.create_task(client.read(on_response))
-                write_task = asyncio.create_task(client.send_command(command))
+                write_task = asyncio.create_task(send_task())
 
                 await asyncio.wait([read_task, write_task])
             except asyncio.IncompleteReadError:

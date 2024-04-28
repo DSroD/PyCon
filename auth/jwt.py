@@ -55,10 +55,9 @@ class JwtTokenUtils:
             payload = jwt.decode(token, self._secret_key, algorithms=['HS512'])
             username = payload.get('sub', None)
             cap_names = payload.get('scope', [])
-            caps = list(map(lambda cap: (cap,), cap_names))
             return UserView(
                 username=username,
-                capabilities=caps,
+                capabilities=cap_names,
             )
         except jwt.exceptions.PyJWTError:
             return None
