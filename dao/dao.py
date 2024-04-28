@@ -36,8 +36,8 @@ class ServerDao(ABC):
         """
 
     @abstractmethod
-    async def upsert(self, server: Server) -> Optional[Server]:
-        pass
+    async def upsert(self, server: Server, acting_user: Optional[str]) -> Optional[Server]:
+        """Upsert a server."""
 
 
 class UserDao(ABC):
@@ -55,7 +55,6 @@ class UserDao(ABC):
         Returns user by username.
 
         :param username:
-        :return:
         """
 
     @abstractmethod
@@ -63,7 +62,8 @@ class UserDao(ABC):
             self,
             username: str,
             hashed_password: str,
-            capabilities: list[UserCapability]
+            capabilities: list[UserCapability],
+            acting_user: Optional[str],
     ) -> Optional[UserView]:
         """
         Creates new user (if no other with same username exists).
@@ -71,16 +71,16 @@ class UserDao(ABC):
         :param username: Username
         :param hashed_password: Password hash
         :param capabilities: List of user capabilities.
-        :return:
+        :param acting_user: Name of the user performing this operation.
         """
 
     @abstractmethod
-    async def delete_user(self, username: str) -> None:
+    async def delete_user(self, username: str, acting_user: Optional[str]) -> None:
         """
         Removes user by username (if exists).
 
         :param username: Username
-        :return:
+        :param acting_user: Name of the user performing this operation.
         """
 
     @abstractmethod
@@ -93,12 +93,18 @@ class UserDao(ABC):
         """
 
     @abstractmethod
-    async def set_disabled(self, username: str, disabled: bool) -> None:
+    async def set_disabled(
+            self,
+            username: str,
+            disabled: bool,
+            acting_user: Optional[str]
+    ) -> None:
         """
         Sets disabled flag of a user (if exists).
 
         :param username: Username
         :param disabled: Value of the disabled flag to set
+        :param acting_user: Name of the user performing this operation.
         """
 
     @abstractmethod

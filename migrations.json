@@ -3,33 +3,131 @@
     "type": "create_table",
     "table_name": "users",
     "columns": {
-      "username": "varchar",
-      "hashed_password": "varchar",
-      "disabled": "integer"
+      "username": {
+        "type": "varchar",
+        "nullable": false
+      },
+      "hashed_password": {
+        "type": "varchar",
+        "nullable": false
+      },
+      "disabled": {
+        "type": "integer",
+        "nullable": false,
+        "default": 0
+      },
+      "deleted": {
+        "type": "integer",
+        "nullable": false,
+        "default": 0
+      },
+      "created_at": {
+        "type": "varchar",
+        "nullable": false
+      },
+      "created_by": "varchar",
+      "updated_at": "string",
+      "updated_by": "varchar"
     },
-    "pk": "username"
+    "pk": "username",
+    "fk": {
+      "updated_by": {
+        "table": "users",
+        "column": "username"
+      },
+      "created_by": {
+        "table": "users",
+        "column": "username"
+      }
+    }
   },
+
   "initialize_servers_table": {
     "type": "create_table",
     "table_name": "servers",
     "columns": {
-      "uid": "varchar",
-      "type": "integer",
-      "name": "varchar",
-      "description": "varchar",
-      "host": "varchar",
-      "port": "integer",
-      "rcon_port": "integer",
-      "rcon_password": "varchar"
+      "uid": {
+        "type": "varchar",
+        "nullable": false
+      },
+      "type": {
+        "type": "integer",
+        "nullable": false
+      },
+      "name": {
+        "type": "varchar",
+        "nullable": false
+      },
+      "description": {
+        "type": "varchar",
+        "nullable": false
+      },
+      "host": {
+        "type": "varchar",
+        "nullable": false
+      },
+      "port": {
+        "type": "integer",
+        "nullable": false
+      },
+      "rcon_port": {
+        "type": "integer",
+        "nullable": false
+      },
+      "rcon_password": {
+        "type": "varchar",
+        "nullable": false
+      },
+      "deleted": {
+        "type": "integer",
+        "nullable": false,
+        "default": 0
+      },
+      "created_at": {
+        "type": "varchar",
+        "nullable": false
+      },
+      "created_by": "varchar",
+      "updated_at": "string",
+      "updated_by": "varchar"
     },
-    "pk": "uid"
+    "pk": "uid",
+    "fk": {
+      "updated_by": {
+        "table": "users",
+        "column": "username"
+      },
+      "created_by": {
+        "table": "users",
+        "column": "username"
+      }
+    }
   },
-  "user_servers_fk": {
+
+  "user_servers": {
     "type": "create_table",
     "table_name": "user_servers",
     "columns": {
-      "username": "varchar",
-      "uid": "varchar"
+      "username": {
+        "type": "varchar",
+        "nullable": false
+      },
+      "uid": {
+        "type": "varchar",
+        "nullable": false
+      },
+      "deleted": {
+        "type": "integer",
+        "nullable": false,
+        "default": 0
+      },
+      "created_at": {
+        "type": "varchar",
+        "nullable": false
+      },
+      "created_by": "varchar",
+      "updated_at": "string",
+      "updated_by": "varchar"
     },
     "pk": ["username", "uid"],
     "fk": {
@@ -40,26 +138,57 @@
       "uid": {
         "table": "servers",
         "column": "uid"
+      },
+      "updated_by": {
+        "table": "users",
+        "column": "username"
+      },
+      "created_by": {
+        "table": "users",
+        "column": "username"
       }
     }
   },
+
   "user_capabilities": {
     "type": "create_table",
     "table_name": "user_capabilities",
     "columns": {
-      "id": "integer",
-      "username": "varchar",
-      "capability": "varchar"
+      "username": {
+        "type": "varchar",
+        "nullable": false
+      },
+      "capability": {
+        "type": "varchar",
+        "nullable": false
+      },
+      "deleted": {
+        "type": "integer",
+        "nullable": false,
+        "default": 0
+      },
+      "created_at": {
+        "type": "varchar",
+        "nullable": false
+      },
+      "created_by": "varchar",
+      "updated_at": "string",
+      "updated_by": "varchar"
     },
-    "pk": "id",
+    "pk": ["username", "capability"],
     "fk": {
       "username": {
         "table": "users",
         "column": "username"
+      },
+      "updated_by": {
+        "table": "users",
+        "column": "username"
+      },
+      "created_by": {
+        "table": "users",
+        "column": "username"
       }
-    },
-    "unique": [
-      ["username", "capability"]
-    ]
+    }
   }
 }

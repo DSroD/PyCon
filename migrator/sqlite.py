@@ -1,22 +1,17 @@
 """Migration code for sqlite db"""
 import itertools
 import json
+import logging
 import sqlite3
 from datetime import datetime
 from sqlite3 import Connection
-from typing import Optional
+
+
+logger = logging.getLogger(__name__)
 
 
 def _create_if_not_exists(con: Connection):
     con.execute("CREATE TABLE IF NOT EXISTS migrations(name VARCHAR PRIMARY KEY, executed_at TEXT)")
-
-
-def _get_latest_migration(con: Connection) -> Optional[str]:
-    cur = con.execute("SELECT name FROM migrations ORDER BY executed_at DESC LIMIT 1")
-    result = cur.fetchone()
-    if result:
-        return result[0]
-    return None
 
 
 def _get_migrations(con: Connection) -> list[str]:
@@ -34,9 +29,16 @@ def _insert_executed_migration(con: Connection, mig_name: str):
 
 
 def _cols_gen(op: dict):
-    cols: dict[str, str] = op["columns"]
-    for col_name, col_type in cols.items():
-        yield f"{col_name} {col_type.upper()}"
+    cols: dict[str, str | dict] = op["columns"]
+    for col_name, col_data in cols.items():
+        if isinstance(col_data, str):
+            yield f"{col_name} {col_data.upper()}"
+        else:
+            col_type = col_data["type"]
+            nullable = col_data["nullable"] if "nullable" in col_data else True
+            nullable_str = "" if nullable else " NOT NULL"
+            default_str = f" DEFAULT {col_data['default']}" if "default" in col_data else ""
+            yield f"{col_name} {col_type.upper()}{nullable_str}{default_str}"
 
 
 def _pk_gen(op: dict):
@@ -79,12 +81,13 @@ def _create_table(con: Connection, op: dict):
 
 
 def _apply_mig(con: Connection, mig_name: str, mig_op: dict):
-    mig_type = mig_op["type"]
-    if mig_type == 'create_table':
-        _create_table(con, mig_op)
-    else:
-        raise LookupError("Unknown migration type.")  # TODO: better exception
-    _insert_executed_migration(con, mig_name)
+    with con:
+        mig_type = mig_op["type"]
+        if mig_type == 'create_table':
+            _create_table(con, mig_op)
+        else:
+            raise ValueError("Unknown migration type.")
+        _insert_executed_migration(con, mig_name)
 
 
 def migrate(
@@ -97,12 +100,13 @@ def migrate(
     with con:
         _create_if_not_exists(con)
 
-        applied = _get_migrations(con)
-        with open(migrations_file, "r", encoding='utf-8') as mig_file:
-            migs = json.load(mig_file)
-            for mig_name, mig_op in migs.items():
-                if mig_name in applied:
-                    continue
-                _apply_mig(con, mig_name, mig_op)
+    applied = _get_migrations(con)
+    with open(migrations_file, "r", encoding='utf-8') as mig_file:
+        migs = json.load(mig_file)
+        for mig_name, mig_op in migs.items():
+            if mig_name in applied:
+                continue
+            _apply_mig(con, mig_name, mig_op)
+            logger.info("Performed migration %s", mig_name)
     if close:
         con.close()

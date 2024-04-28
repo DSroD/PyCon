@@ -1,8 +1,12 @@
 """Provides logic for retrying operations."""
 import asyncio
+import logging
 import random
 from dataclasses import dataclass
 from typing import Coroutine, Optional, Callable
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(eq=True, frozen=True)
@@ -12,6 +16,7 @@ class RetryConfiguration:
     jitter_ms: Optional[int] = None
     max_backoff_ms: Optional[int] = None
     max_tries: Optional[int] = None
+    log_level: logging.INFO | logging.WARN | logging.ERROR = logging.INFO
 
 
 async def retry_jitter_exponential_backoff(
@@ -35,9 +40,16 @@ async def retry_jitter_exponential_backoff(
         try:
             await coro()
             break
-        except exc_types:
+        except exc_types as e:
             if retry_configuration.max_tries and try_num >= retry_configuration.max_tries:
                 raise
+
+            logger.log(
+                retry_configuration.log_level,
+                "Retrying after catching exception %s.",
+                e
+            )
+
             exp_ms = retry_configuration.backoff_ms * 2 ** try_num
             # pylint: disable-next=invalid-unary-operand-type
             add_ms = random.randint(

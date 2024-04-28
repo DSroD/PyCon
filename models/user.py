@@ -6,10 +6,11 @@ from pydantic import BaseModel
 
 
 class UserCapability(Enum):
+    """Capabilities of users."""
     # Create new users and assign capabilities
-    USER_MANAGEMENT = "USER_MANAGEMENT",
+    USER_MANAGEMENT = "USER_MANAGEMENT"
     # Create new servers and assign users
-    SERVER_MANAGEMENT = "SERVER_MANAGEMENT",
+    SERVER_MANAGEMENT = "SERVER_MANAGEMENT"
 
 
 class UserView(BaseModel):

@@ -10,6 +10,7 @@ from models.user import UserView, User, UserCapability
 
 class ServerDaoImpl(ServerDao):
     """InMemory implementation of ServerDao."""
+
     def __init__(self):
         self._servers = {
             uuid.UUID("141a5347-abfc-4c13-8d10-bba20a261f69"): {
@@ -54,6 +55,10 @@ class ServerDaoImpl(ServerDao):
     async def get_all(self) -> List[Server]:
         return list(map(lambda s: Server(**s), self._servers.values()))
 
+    @override
+    async def upsert(self, server: Server, acting_user: Optional[str]) -> Optional[Server]:
+        pass
+
 
 class UserDaoImpl(UserDao):
     """InMemory implementation of UserDao."""
@@ -94,6 +99,7 @@ class UserDaoImpl(UserDao):
             username: str,
             hashed_password: str,
             capabilities: list[UserCapability],
+            acting_user: Optional[str],
     ) -> Optional[UserView]:
         if username in self._users:
             return None
@@ -105,7 +111,7 @@ class UserDaoImpl(UserDao):
         }
 
     @override
-    async def delete_user(self, username: str) -> None:
+    async def delete_user(self, username: str, acting_user: Optional[str]) -> None:
         self._users.pop(username, None)
 
     @override
@@ -115,7 +121,12 @@ class UserDaoImpl(UserDao):
         return None
 
     @override
-    async def set_disabled(self, username: str, disabled: bool) -> None:
+    async def set_disabled(
+            self,
+            username: str,
+            disabled: bool,
+            acting_user: Optional[str],
+    ) -> None:
         if username in self._users:
             self._users[username]["disabled"] = disabled
 

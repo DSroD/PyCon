@@ -1,4 +1,5 @@
 """Main module for PyConCraft app."""
+import logging
 from contextlib import asynccontextmanager
 from datetime import timedelta
 
@@ -23,6 +24,9 @@ from services.server_status import ServerStatusService
 from services.service import ServiceLauncher
 from templating import TemplateProvider
 
+logging.basicConfig(level=logging.DEBUG)
+
+logger = logging.getLogger(__name__)
 
 configuration = Configuration()
 ioc.register(configuration)
@@ -59,13 +63,15 @@ async def startup():
     # Default user init
     default_user_pwd = hash_password(configuration.default_user_password)
 
+    logger.info("Creating user %s", configuration.default_user_name)
     await user_dao.create_user(
         configuration.default_user_name,
         default_user_pwd,
         [
             UserCapability.USER_MANAGEMENT,
             UserCapability.SERVER_MANAGEMENT,
-        ]
+        ],
+        None
     )
 
     service_launcher.launch(
