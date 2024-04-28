@@ -50,8 +50,9 @@ class MinecraftRconIntegrationTests(unittest.IsolatedAsyncioTestCase):
             responses = []
 
             async def send_task():
+                await asyncio.sleep(0.5)  # Artificial delay
                 await client.send_command(command)
-                await asyncio.sleep(0.5)  # Additional delay for task to end later
+                await asyncio.sleep(0.5)
 
             def on_response(packet):
                 responses.append(packet)
