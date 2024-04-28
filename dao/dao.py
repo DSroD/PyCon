@@ -36,8 +36,9 @@ class ServerDao(ABC):
         """
 
     @abstractmethod
-    async def create(self, server: Server) -> Optional[Server]:
+    async def upsert(self, server: Server) -> Optional[Server]:
         pass
+
 
 class UserDao(ABC):
     """Data access object for user data."""

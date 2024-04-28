@@ -145,7 +145,7 @@ class ServerDaoImpl(ServerDao):
                 FROM servers
                 """
             )
-            cur.rowfactory = model_mapper(Server)
+            cur.row_factory = model_mapper(Server)
 
             return cur.fetchall()
 
@@ -160,10 +160,50 @@ class ServerDaoImpl(ServerDao):
                 """,
                 (username,)
             )
-            cur.rowfactory = model_mapper(Server)
+            cur.row_factory = model_mapper(Server)
 
             return cur.fetchall()
 
     @override
     async def get_by_uid(self, uid: uuid.UUID) -> Optional[Server]:
-        pass
+        with self._conn() as con:
+            cur = con.execute(
+                """
+                SELECT uid, type, name, description, host, port, rcon_port, rcon_password
+                FROM servers WHERE uid = ?
+                """,
+                (str(uid),)
+            )
+            cur.row_factory = model_mapper(Server)
+
+            return cur.fetchone()
+
+    @override
+    async def upsert(self, server: Server) -> Server:
+        with self._conn() as con:
+            con.execute(
+                """
+                INSERT INTO servers (uid, type, name, description, host, port, rcon_port, rcon_password)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT (uid) DO UPDATE SET
+                    type=excluded.type,
+                    name=excluded.name,
+                    description=excluded.description,
+                    host=excluded.host,
+                    port=excluded.port,
+                    rcon_port=excluded.rcon_port,
+                    rcon_password=excluded.rcon_password
+                """,
+                (
+                    str(server.uid),
+                    server.type.value,
+                    server.name,
+                    server.description,
+                    server.host,
+                    server.port,
+                    server.rcon_port,
+                    server.rcon_password
+                )
+            )
+
+        return server
