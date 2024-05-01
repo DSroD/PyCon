@@ -1,12 +1,12 @@
 """Client for RCON communication."""
-from __future__ import annotations
+#from __future__ import annotations
 
 import asyncio
 import logging
 from asyncio import StreamReader, StreamWriter
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Callable, Optional, Coroutine
+from typing import Callable, Optional, Awaitable
 
 from messages.rcon import RconCommand, RconResponse
 from models.server import Server
@@ -70,10 +70,12 @@ class RconClient:
 
     def __init__(
             self,
+            server: Server,
             connection: RconConnection,
             request_id_provider: IntRequestIdProvider,
             payload_encoding: str,
     ):
+        self._server = server
         self._connection = connection
         self._request_id_provider = request_id_provider
         self._payload_encoding = payload_encoding
@@ -132,30 +134,29 @@ class RconClient:
             response=response
         )
 
+    def close(self):
+        self._connection.close()
+
+    @property
+    def server(self) -> Server:
+        return self._server
+
 
 class RconClientManager:
     """Client used to communicate with the RCON server."""
     def __init__(
             self,
             request_id_provider: IntRequestIdProvider,
-            server: Server,
+            server_supplier: Callable[[], Awaitable[Optional[Server]]],
             timeout: int = 5,
-            on_failure: Optional[Callable[[], Coroutine]] = None,
     ):
         self._request_id_provider = request_id_provider
-        self._server = server
+        self._server_supplier = server_supplier
         self._timeout = timeout
         self.responses = defaultdict(set)
-        self._on_failure = on_failure
-        self._connection = None
 
     async def __aenter__(self) -> RconClient:
-        logger.info(
-            "Connecting to RCON %s:%s",
-            self._server.host,
-            self._server.rcon_port,
-        )
-        await retry(
+        self._client = await retry(
             self._connect,
             (
                 RequestIdMismatchError,
@@ -171,31 +172,35 @@ class RconClientManager:
                 jitter_ms=100,
                 max_backoff_ms=240000,
             ),
-            on_failure=self._on_failure
         )
 
-        logger.info(
-            "Connected to RCON %s:%s",
-            self._server.host,
-            self._server.rcon_port,
-        )
-
-        return RconClient(self._connection, self._request_id_provider, encoding(self._server.type))
+        return self._client
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        self._connection.close()
+        self._client.close()
 
     async def _connect(self):
+        server = await self._server_supplier()
+
+        if server is None:
+            raise ValueError("Server not found")  # TODO: better exception
+
+        logger.info(
+            "Connecting to RCON %s:%s",
+            server.host,
+            server.rcon_port,
+        )
+
         reader, writer = await asyncio.wait_for(
-            asyncio.open_connection(self._server.host, self._server.rcon_port),
+            asyncio.open_connection(server.host, server.rcon_port),
             self._timeout
         )
 
-        conn = RconConnection(reader, writer, encoding(self._server.type))
+        conn = RconConnection(reader, writer, encoding(server.type))
 
         request_id = self._request_id_provider.get_request_id()
         login_packet = LoginPacket(
-            self._server.rcon_password,
+            server.rcon_password,
             request_id
         )
 
@@ -208,23 +213,33 @@ class RconClientManager:
             case InvalidPasswordResponse():
                 logger.error(
                     "Received invalid password response for RCON %s:%s",
-                    self._server.host,
-                    self._server.rcon_port,
+                    server.host,
+                    server.rcon_port,
                 )
                 raise InvalidPasswordError()
             case UnprocessableResponse(request_id, message):
                 logger.warning(
                     "Received unprocessable response for RCON %s:%s",
-                    self._server.host,
-                    self._server.rcon_port,
+                    server.host,
+                    server.rcon_port,
                 )
                 raise InvalidPacketError(f"{request_id}: {message}")
             case _:
                 logger.warning(
                     "Received non-login response when expecting login response for RCON %s:%s",
-                    self._server.host,
-                    self._server.rcon_port,
+                    server.host,
+                    server.rcon_port,
                 )
                 raise InvalidPacketError("Expected login response.")
 
-        self._connection = conn
+        logger.info(
+            "Connected to RCON %s:%s",
+            server.host,
+            server.rcon_port,
+        )
+
+        return RconClient(
+            server,
+            conn,
+            self._request_id_provider,
+            encoding(server.type))

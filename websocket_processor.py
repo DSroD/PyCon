@@ -71,18 +71,13 @@ class WebsocketProcessor[DataInT, MessageInT, MessageOutT]:
         write_task = asyncio.create_task(self._write())
         read_task = asyncio.create_task(self._read())
         try:
-            _, pending = await asyncio.wait(
+            await asyncio.wait(
                 [write_task, read_task],
-                return_when=asyncio.FIRST_EXCEPTION,
+                return_when=asyncio.FIRST_COMPLETED,
             )
-
-            for task in pending:
-                task.cancel()
-
         except asyncio.CancelledError:
             await self._websocket.close()
             raise
-
         finally:
             write_task.cancel()
             read_task.cancel()

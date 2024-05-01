@@ -9,7 +9,6 @@ from pydantic_settings import BaseSettings
 
 class DatabaseProvider(Enum):
     """Enumeration of database providers."""
-    IN_MEMORY = "IN_MEMORY"
     SQLITE = "SQLITE"
 
 
@@ -20,15 +19,9 @@ class SqliteDbConfiguration:
     db_provider: Literal[DatabaseProvider.SQLITE] = DatabaseProvider.SQLITE
 
 
-@dataclass
-class InMemoryDbConfiguration:
-    """Configuration of in-memory database."""
-    db_provider: Literal[DatabaseProvider.IN_MEMORY] = DatabaseProvider.IN_MEMORY
-
-
 class Configuration(BaseSettings):
     """Application configuration model."""
-    db_configuration: Union[SqliteDbConfiguration, InMemoryDbConfiguration] = Field(
+    db_configuration: Union[SqliteDbConfiguration] = Field(
         SqliteDbConfiguration(),
         discriminator='db_provider'
     )

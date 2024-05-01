@@ -1,5 +1,7 @@
 """Service for communication with RCON."""
 import asyncio
+import uuid
+from typing import Callable, Awaitable, Optional
 
 from messages.notifications import notification_topic, NotificationMessage
 from messages.rcon import rcon_command_topic, rcon_response_topic
@@ -12,105 +14,96 @@ from rcon.request_id import IntRequestIdProvider
 from services.service import Service, RecoverableError
 
 
+def rcon_service_name(uid: uuid.UUID) -> str:
+    """
+    Returns the name of RCON service with given server UUID
+    :param uid: UUID of the server
+    :return: Service name
+    """
+    return f"rcon_service_{uid}"
+
+
 class RconService(Service):
     """Service responsible for connection to and communication with RCON of a server."""
     def __init__(
             self,
             pubsub: PubSub,
-            server: Server,
+            server_uid: uuid.UUID,
+            server_supplier: Callable[[], Awaitable[Optional[Server]]],
     ):
         self._pubsub = pubsub
-        # TODO: this should be supplier to allow changes when processor is running
-        self._server = server
+        self._server_supplier = server_supplier
+        self._server_uid = server_uid
 
     @property
     def name(self) -> str:
-        return f"rcon_service_{self._server.uid}"
+        return rcon_service_name(self._server_uid)
 
     async def launch(self):
-        try:
-            async with RconClientManager(
-                IntRequestIdProvider(),
-                self._server,
-                on_failure=self._notify_connection_failure
-            ) as client:
-                await self._process(client)
-        except asyncio.IncompleteReadError as e:
-            raise RecoverableError(e, 5000) from e
+        async with RconClientManager(
+            IntRequestIdProvider(),
+            self._server_supplier,
+        ) as client:
+            await self._process(client)
 
     async def _process(self, client):
         self._pubsub.publish(
             server_status_topic,
-            RconConnected(self._server.uid)
+            RconConnected(self._server_uid)
         )
         self._pubsub.publish(
             notification_topic,
             NotificationMessage(
                 audience="all",
-                message=f"Connected to RCON of {self._server.name}",
+                message=f"Connected to RCON of {client.server.name}",
                 type=NotificationMessage.NotificationType.SUCCESS,
             )
         )
 
-        write_task = asyncio.create_task(self._write(client))
-        read_task = asyncio.create_task(self._read(client))
-        _, pending = await asyncio.wait(
-            [write_task, read_task],
-            return_when=asyncio.FIRST_COMPLETED
-        )
-
-        self._pubsub.publish(
-            server_status_topic,
-            RconDisconnected(self._server.uid)
-        )
-        self._pubsub.publish(
-            notification_topic,
-            NotificationMessage(
-                audience="all",
-                message=f"Disconnected from RCON of {self._server.name}",
-                type=NotificationMessage.NotificationType.ERROR,
+        try:
+            async with asyncio.TaskGroup() as tg:
+                tg.create_task(self._write(client))
+                tg.create_task(self._read(client))
+        finally:
+            self._pubsub.publish(
+                server_status_topic,
+                RconDisconnected(client.server.uid)
             )
-        )
-
-        for task in pending:
-            task.cancel()
+            self._pubsub.publish(
+                notification_topic,
+                NotificationMessage(
+                    audience="all",
+                    message=f"Disconnected from RCON of {client.server.name}",
+                    type=NotificationMessage.NotificationType.ERROR,
+                )
+            )
 
     async def _write(self, client: RconClient):
         with self._pubsub.subscribe(
-            rcon_command_topic(self._server.uid),
+            rcon_command_topic(self._server_uid),
             FieldLength(lambda msg: msg.command, 1, FieldLength.Mode.MIN)
         ) as sub:
             async for cmd in sub:
                 await client.send_command(cmd)
 
     async def _read(self, client: RconClient):
-        await client.read(
-            lambda msg: self._pubsub.publish(
-                rcon_response_topic(self._server.uid),
-                msg
-            ),
-            lambda err_msg: self._pubsub.publish(
-                notification_topic,
-                NotificationMessage(
-                    audience="all",
-                    message=err_msg,
-                    type=NotificationMessage.NotificationType.ERROR,
+        try:
+            await client.read(
+                lambda msg: self._pubsub.publish(
+                    rcon_response_topic(self._server_uid),
+                    msg
+                ),
+                lambda err_msg: self._pubsub.publish(
+                    notification_topic,
+                    NotificationMessage(
+                        audience="all",
+                        message=err_msg,
+                        type=NotificationMessage.NotificationType.ERROR,
+                    )
                 )
             )
-        )
-
-    async def _notify_connection_failure(self):
-        self._pubsub.publish(
-            notification_topic,
-            NotificationMessage(
-                audience="all",
-                message=f"Failed to connect to {self._server.host}:{self._server.rcon_port}",
-                type=NotificationMessage.NotificationType.WARNING,
-            )
-        )
+        except* asyncio.IncompleteReadError as e:
+            raise RecoverableError(e, 5000) from e
 
     async def stop(self):
-        self._pubsub.publish(
-            server_status_topic,
-            RconDisconnected(self._server.uid)
-        )
+        pass

@@ -1,12 +1,13 @@
+<title>PyCon - Login</title>
 <div id="content" hx-swap-oob="true">
     <form hx-post="/token" hx-swap="none">
         <label>
             Username
-            <input name="username" type="text" placeholder="username">
+            <input required name="username" type="text" placeholder="username">
         </label>
         <label>
             Password
-            <input name="password" type="password">
+            <input required name="password" type="password">
         </label>
     <input type="submit" value="Log in">
 </form>

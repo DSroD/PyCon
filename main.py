@@ -1,5 +1,6 @@
 """Main module for PyConCraft app."""
 import logging
+import uuid
 from contextlib import asynccontextmanager
 from datetime import timedelta
 
@@ -11,13 +12,13 @@ from auth.hashing import hash_password
 from auth.jwt import JwtTokenUtils
 from configuration import Configuration
 from dao.dao import ServerDao, UserDao
-from dependencies import get_daos, ioc, migrator_factory
+from dependencies import dao_factory, ioc, migrator_factory
 from messages.heartbeat import HeartbeatConverter
 from messages.notifications import NotificationConverter
 from models.user import UserCapability
 from pubsub.inprocess import InProcessPubSub
 from pubsub.pubsub import PubSub
-from routes import login, index, servers
+from routes import auth, index, servers
 from services.heartbeat import HeartbeatPublisherService
 from services.rcon_service import RconService
 from services.server_status import ServerStatusService
@@ -32,11 +33,12 @@ configuration = Configuration()
 ioc.register(configuration)
 
 service_launcher = ServiceLauncher(ioc)
+ioc.register(service_launcher, ServiceLauncher)
 
 pubsub: PubSub = InProcessPubSub()
 ioc.register(pubsub, PubSub)
 
-(user_dao, server_dao) = get_daos(configuration)
+(user_dao, server_dao) = dao_factory(configuration)
 
 ioc.register(user_dao, UserDao)
 ioc.register(server_dao, ServerDao)
@@ -48,7 +50,12 @@ ioc.register(
     )
 )
 
-templates = TemplateProvider("templates", "base.html")
+templates = TemplateProvider(
+    "templates",
+    "base.html",
+    {
+        "all_capabilities": UserCapability,
+    })
 ioc.register(templates)
 
 ioc.register(NotificationConverter(templates.get_template))
@@ -84,9 +91,18 @@ async def startup():
 
     all_servers = await server_dao.get_all()
 
+    def server_supplier(uid: uuid.UUID):
+        def supply():
+            return server_dao.get_by_uid(uid)
+        return supply
+
     for server in all_servers:
         service_launcher.launch(
-            RconService(pubsub, server)
+            RconService(
+                pubsub,
+                server.uid,
+                server_supplier(server.uid)
+            )
         )
 
 
@@ -106,7 +122,7 @@ app = FastAPI(lifespan=lifespan)
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-app.include_router(login.router)
+app.include_router(auth.router)
 app.include_router(index.router)
 app.include_router(servers.router)
 

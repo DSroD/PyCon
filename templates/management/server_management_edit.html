@@ -1,0 +1,74 @@
+{% if server %}
+<title> PyCon - Server edit - {{ server.name }}</title>
+{% else %}
+<title>PyCon - New server</title>
+{% endif %}
+
+<div id="content" hx-swap-oob="true">
+    <div class="box">
+        <span class="margin-block-end block titlebar">{{ server.name|default('New server') }}</span>
+        <form class="table rows" id="server-upsert" hx-put="/server-mgmt/edit/">
+            {% if server %}
+            <input type="hidden" name="uid" value="{{ server.uid }}">
+            {% endif %}
+            <p>
+                <label for="f_name">Server name</label>
+                <input id="f_name" required name="name" type="text" value="{{ server.name|default('') }}">
+            </p>
+
+            <p>
+                <label for="f_type">Game type</label>
+                <select id="f_type" required name="server_type">
+                    <option {% if server.type=="MINECRAFT_SERVER" %} selected {% endif %} value="MINECRAFT_SERVER">Minecraft</option>
+                    <option {% if server.type=="SOURCE_SERVER" %} selected {% endif %} value="SOURCE_SERVER">Source Dedicated Server</option>
+                </select>
+            </p>
+
+            <p>
+                <label for="f_description">Description</label>
+                <textarea id="f_description" required name="description">{{ server.description|default("Description...") }}</textarea>
+            </p>
+
+            <p>
+                <label for="f_host">Host</label>
+                <input id="f_host" required name="host" type="text" value="{{ server.host|default('') }}">
+            </p>
+
+            <p>
+                <label for="f_port">Port</label>
+                <input id="f_port" required name="port" type="number" value="{{ server.port|default(25565) }}">
+            </p>
+
+            <p>
+                <label for="f_rcon_port">RCON Port</label>
+                <input id="f_rcon_port" required name="rcon_port" type="number" value="{{ server.rcon_port|default(25575) }}">
+            </p>
+
+            <p>
+                <label for="f_rcon_password">RCON Password</label>
+                <input id="f_rcon_password" required name="rcon_password" type="password" value="{{ server.rcon_password|default('') }}">
+            </p>
+
+            <p>
+                <label for="f_server_users">Users (hold Ctrl/Cmd for multi-select)</label>
+                <select id="f_server_users" required name="server_users" multiple>
+                    {% for username in usernames %}
+                        <option value="{{ username }}" {% if username in selected_usernames %} selected {% endif %}>{{ username }}</option>
+                    {% endfor %}
+                </select>
+            </p>
+
+            <p>
+                <button class="big" type="submit" hx-disabled-elt>
+                    {{ 'Update' if server else 'Create' }}
+                </button>
+
+                {% if server %}
+                <button class="big" hx-delete="/server-mgmt/{{ server.uid }}/" hx-disabled-elt>
+                    Delete
+                </button>
+                {% endif %}
+            </p>
+        </form>
+    </div>
+</div>

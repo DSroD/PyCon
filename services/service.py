@@ -5,13 +5,12 @@ launching long-running services.
 """
 import asyncio
 import logging
-import uuid
 from abc import ABC, abstractmethod
 from asyncio import Task
 from typing import Optional
 
 from dependencies import Dependencies
-
+from utils.exceptions import leaves
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +35,7 @@ class ServiceLauncher:
     """Launches services."""
     def __init__(self, ioc: Dependencies):
         self._ioc = ioc
-        self._services: dict[uuid.UUID, Task] = {}
+        self._services: dict[str, Task] = {}
 
     def launch(
             self,
@@ -52,29 +51,32 @@ class ServiceLauncher:
         :param retry_on_fail: Retry on RecoverableException
         :return:
         """
-        task_id = uuid.uuid4()
-
-        async def handled():
-            try:
-                await service.launch()
-            except asyncio.CancelledError:
-                await service.stop()
-                if task_id in self._services:
-                    self._services.pop(task_id)
-                logger.info("Service %s stopped.", service.name)
-                raise
 
         async def retryable():
             while True:
                 try:
-                    await handled()
-                except RecoverableError as e:
-                    await asyncio.sleep(e.recovery_delay_ms / 1000)
+                    logger.info("Launching service %s.", service.name)
+                    await service.launch()
+                except* RecoverableError as e:
+                    if retry_on_fail:
+                        excs: list[RecoverableError] = leaves(e)
+                        delay_ms = max(map(lambda exc: exc.recovery_delay_ms, excs))
+                        await asyncio.sleep(delay_ms / 1000)
+                    else:
+                        raise
 
-        coro = retryable() if retry_on_fail else handled()
+        async def handled():
+            try:
+                await retryable()
+            finally:
+                await service.stop()
+                referenced = self._services.get(service.name, None)
+                if referenced == service:
+                    self._services.pop(service.name)
+                logger.info("Service %s stopped.", service.name)
 
-        task = asyncio.create_task(coro)
-        self._services[task_id] = task
+        task = asyncio.create_task(handled())
+        self._services[service.name] = task
 
         if register_as:
             self._ioc.register(service, register_as)
@@ -83,15 +85,31 @@ class ServiceLauncher:
         """Cancels all service tasks."""
         for task in self._services.values():
             task.cancel()
-        self._services.clear()
+
+    def is_running(self, name: str) -> bool:
+        """
+        Checks if a service is running.
+        :param name: Name of the service.
+        :return: If the service is running.
+        """
+        return name in self._services
+
+    def stop_service(self, name: str):
+        """
+        Stops a service.
+        :param name: Name of the service.
+        """
+        task = self._services.pop(name)
+        task.cancel()
 
 
 class RecoverableError(Exception):
     """Error wrapper for exceptions in services that are recoverable."""
     def __init__(self, error: Exception, recovery_delay_ms: int):
         """
-        :param error: Inner exception.
+        Signifies it is possible to recover from error.
 
+        :param error: Inner exception.
         :param recovery_delay_ms: Recovery delay in milliseconds
         """
         self._error = error

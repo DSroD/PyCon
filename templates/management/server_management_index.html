@@ -1,0 +1,13 @@
+<title>PyCon - Server management</title>
+<div id="content" hx-swap-oob="true">
+    Server management
+    <div class="box">
+        <strong class="block titlebar">Servers</strong>
+        {% for server in servers %}
+            <div class="box">
+                <a hx-get="/server-mgmt/edit/?uid={{ server.uid }}">{{ server.name }}</a>
+            </div>
+        {% endfor %}
+        <button class="margin padding" type="button" hx-get="/server-mgmt/edit/">Add new server</button>
+    </div>
+</div>

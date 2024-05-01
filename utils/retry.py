@@ -3,8 +3,7 @@ import asyncio
 import logging
 import random
 from dataclasses import dataclass
-from typing import Coroutine, Optional, Callable
-
+from typing import Optional, Callable, Awaitable
 
 logger = logging.getLogger(__name__)
 
@@ -19,11 +18,11 @@ class RetryConfiguration:
     log_level: logging.INFO | logging.WARN | logging.ERROR = logging.INFO
 
 
-async def retry_jitter_exponential_backoff(
-        coro: Callable[[], Coroutine],
+async def retry_jitter_exponential_backoff[OutT, FailureT](
+        coro: Callable[[], Awaitable[OutT]],
         exc_types: tuple[type[Exception], ...],
         retry_configuration: RetryConfiguration,
-        on_failure: Optional[Callable[[], Coroutine]] = None,
+        on_failure: Optional[Callable[[], Awaitable[FailureT]]] = None,
 ):
     """
     Retry a coroutine with exponential backoff.
@@ -38,17 +37,10 @@ async def retry_jitter_exponential_backoff(
     while True:
         try_num += 1
         try:
-            await coro()
-            break
+            return await coro()
         except exc_types as e:
             if retry_configuration.max_tries and try_num >= retry_configuration.max_tries:
                 raise
-
-            logger.log(
-                retry_configuration.log_level,
-                "Retrying after catching exception %s.",
-                e
-            )
 
             exp_ms = retry_configuration.backoff_ms * 2 ** try_num
             # pylint: disable-next=invalid-unary-operand-type
@@ -61,7 +53,15 @@ async def retry_jitter_exponential_backoff(
                     exp_ms + add_ms, retry_configuration.max_backoff_ms
                 )
             ) / 1000
+
             if on_failure:
                 await on_failure()
+
+            logger.log(
+                retry_configuration.log_level,
+                "Caught exception %s. Will retry in %d seconds.",
+                e, delay_seconds,
+            )
+
             await asyncio.sleep(delay_seconds)
             continue

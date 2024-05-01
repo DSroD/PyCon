@@ -2,7 +2,7 @@
 import struct
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Callable, Coroutine
+from typing import Callable, Awaitable
 
 from models.server import Server
 
@@ -159,7 +159,7 @@ decoders: dict[int, Callable[[int, bytes], RconResponsePacket]] = {
 
 
 async def next_packet(
-        read_n: Callable[[int], Coroutine],
+        read_n: Callable[[int], Awaitable[bytes]],
 ):
     """
     Reads next packet.

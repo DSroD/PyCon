@@ -6,12 +6,12 @@ services:
     tty: true
     stdin_open: true
     ports:
-      - "25565:25565"
-      - "25575:25575"
+      - "25566:25565"
+      - "25576:25575"
     environment:
       EULA: "TRUE"
       TYPE: "PAPER"
-      RCON_PASSWORD: "test_server_rcon_pwd1"
+      RCON_PASSWORD: "pwd1"
       MAX_MEMORY: 2G
       RCON_PORT: 25575
 
@@ -20,12 +20,11 @@ services:
     tty: true
     stdin_open: true
     ports:
-      - "25566:25565"
-      - "25576:25575"
+      - "25567:25565"
+      - "25577:25575"
     environment:
       EULA: "TRUE"
       TYPE: "PAPER"
-      RCON_PASSWORD: "test_server_rcon_pwd2"
+      RCON_PASSWORD: "pwd2"
       MAX_MEMORY: 2G
       RCON_PORT: 25575
-      

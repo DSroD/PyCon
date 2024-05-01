@@ -13,13 +13,25 @@ from models.user import UserView
 from templating import TemplateProvider, ResponseMeta
 
 
-@dataclass
+@dataclass(frozen=True, eq=True)
+class CookieMeta:
+    """
+    Cookie metadata for HTMX responses.
+
+    :param expires: Number of seconds until the cookie expires.
+    """
+    name: str
+    value: Optional[str]
+    expires: Optional[int] = None
+
+
+@dataclass(frozen=True)
 class HtmxResponseMeta:
     """Metadata tied to a HtmxResponse."""
     require_auth: bool = False
     push_path: bool = True
     headers: dict[str, str] = field(default_factory=dict)
-    set_cookies: dict = field(default_factory=dict)
+    set_cookies: list[CookieMeta] = field(default_factory=list)
     status_code: int = 200
 
 
@@ -76,8 +88,8 @@ def htmx_response_factory(
                 ),
             )
 
-            for name, cookie in self._response_meta.set_cookies.items():
-                rendered.set_cookie(name, cookie)
+            for cookie in self._response_meta.set_cookies:
+                rendered.set_cookie(cookie.name, cookie.value, expires=cookie.expires)
 
             if self._response_meta.push_path:
                 rendered.headers.append("HX-Push-Url", request.url.path)

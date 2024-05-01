@@ -1,5 +1,6 @@
 """HTML response templating."""
 from dataclasses import dataclass
+from typing import Any, Optional
 
 from fastapi.requests import Request
 from fastapi.templating import Jinja2Templates
@@ -16,8 +17,14 @@ class ResponseMeta:
 class TemplateProvider:
     """Provides Jinja2 templates."""
 
-    def __init__(self, template_directory: str, base_template: str):
+    def __init__(
+            self,
+            template_directory: str,
+            base_template: str,
+            global_ctx: Optional[dict[str, Any]] = None
+    ):
         self._templates = Jinja2Templates(directory=template_directory)
+        self._templates.env.globals = dict(self._templates.env.globals | global_ctx)
         self._base_template = base_template
 
     @property

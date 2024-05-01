@@ -36,8 +36,25 @@ class ServerDao(ABC):
         """
 
     @abstractmethod
-    async def upsert(self, server: Server, acting_user: Optional[str]) -> Optional[Server]:
+    async def upsert(self, server: Server, acting_user: Optional[str]) -> Server:
         """Upsert a server."""
+
+    @abstractmethod
+    async def set_assigned_users(
+            self,
+            server_uid: uuid.UUID,
+            users: list[str],
+            acting_user: Optional[str]
+    ) -> None:
+        """Sets users assigned to a server."""
+
+    @abstractmethod
+    async def get_assigned_usernames(self, server_uid: uuid.UUID) -> list[str]:
+        """Gets usernames of users assigned to a server."""
+
+    @abstractmethod
+    async def delete(self, uid: uuid.UUID, acting_user: Optional[str]) -> None:
+        """Deletes a server from database."""
 
 
 class UserDao(ABC):

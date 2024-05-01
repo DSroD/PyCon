@@ -19,9 +19,9 @@ class UserDaoImpl(UserDao):
         self.con = None
 
     def _conn(self):
-        con = closing(sqlite3.connect(self._db_name))
+        con = sqlite3.connect(self._db_name)
         con.row_factory = sqlite3.Row
-        return con
+        return closing(con)
 
     @override
     async def get_all_usernames(self) -> list[str]:
@@ -70,18 +70,12 @@ class UserDaoImpl(UserDao):
         with self._conn() as con:
             with con:
                 action_at = datetime.now().isoformat()
-                caps = list(
-                    map(
-                        lambda cap: (username, cap.name, action_at, acting_user),
-                        capabilities
-                    )
-                )
                 cur_existing = con.execute(
-                    "SELECT username FROM users WHERE username = ? AND deleted = 0",
+                    "SELECT count(*) FROM users WHERE username = ? AND deleted = 0",
                     (username,)
                 )
-                existing = cur_existing.fetchone()
-                if existing:
+                (existing, ) = cur_existing.fetchone()
+                if existing != 0:
                     return None
 
                 con.execute(
@@ -95,7 +89,13 @@ class UserDaoImpl(UserDao):
                         deleted=0
                     WHERE users.deleted=1
                     """,
-                    (username, hashed_password, action_at, username)
+                    (username, hashed_password, action_at, acting_user)
+                )
+                caps = list(
+                    map(
+                        lambda cap: (username, cap.name, action_at, acting_user),
+                        capabilities
+                    )
                 )
                 con.executemany(
                     """
@@ -159,7 +159,7 @@ class UserDaoImpl(UserDao):
     async def get_capabilities(self, username: str) -> list[UserCapability]:
         with self._conn() as con:
             cur = con.execute(
-                "SELECT capability FROM user_capabilities WHERE username = ?",
+                "SELECT capability FROM user_capabilities WHERE username = ? AND deleted = 0",
             )
             cur.rowfactory = enum_mapper(UserCapability)
 
@@ -169,13 +169,14 @@ class UserDaoImpl(UserDao):
 class ServerDaoImpl(ServerDao):
     """SQLite backed implementation of Server Dao."""
 
+
     def __init__(self, db_name):
         self._db_name = db_name
 
     def _conn(self, row_factory=None):
-        con = closing(sqlite3.connect(self._db_name))
+        con = sqlite3.connect(self._db_name)
         con.row_factory = row_factory if row_factory else sqlite3.Row
-        return con
+        return closing(con)
 
     @override
     async def get_all(self) -> list[Server]:
@@ -226,45 +227,129 @@ class ServerDaoImpl(ServerDao):
     @override
     async def upsert(self, server: Server, acting_user: Optional[str]) -> Server:
         with self._conn() as con:
-            con.execute(
-                """
-                INSERT INTO servers (
-                    uid,
-                    type,
-                    name,
-                    description,
-                    host,
-                    port,
-                    rcon_port,
-                    rcon_password,
-                    created_at,
-                    created_by
+            with con:
+                con.execute(
+                    """
+                    INSERT INTO servers (
+                        uid,
+                        type,
+                        name,
+                        description,
+                        host,
+                        port,
+                        rcon_port,
+                        rcon_password,
+                        created_at,
+                        created_by
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT (uid) DO UPDATE SET
+                        type=excluded.type,
+                        name=excluded.name,
+                        description=excluded.description,
+                        host=excluded.host,
+                        port=excluded.port,
+                        rcon_port=excluded.rcon_port,
+                        rcon_password=excluded.rcon_password,
+                        updated_at=excluded.updated_at,
+                        updated_by=excluded.updated_by,
+                        deleted=0
+                    """,
+                    (
+                        str(server.uid),
+                        server.type.value,
+                        server.name,
+                        server.description,
+                        server.host,
+                        server.port,
+                        server.rcon_port,
+                        server.rcon_password,
+                        datetime.now().isoformat(),
+                        acting_user
+                    )
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT (uid) DO UPDATE SET
-                    type=excluded.type,
-                    name=excluded.name,
-                    description=excluded.description,
-                    host=excluded.host,
-                    port=excluded.port,
-                    rcon_port=excluded.rcon_port,
-                    rcon_password=excluded.rcon_password,
-                    updated_at=excluded.updated_at,
-                    updated_by=excluded.updated_by,
-                    deleted=0
-                """,
-                (
-                    str(server.uid),
-                    server.type.value,
-                    server.name,
-                    server.description,
-                    server.host,
-                    server.port,
-                    server.rcon_port,
-                    server.rcon_password,
-                    datetime.now().isoformat(),
-                    acting_user
-                )
-            )
 
         return server
+
+    @override
+    async def set_assigned_users(
+            self,
+            server_uid: uuid.UUID,
+            users: list[str],
+            acting_user: Optional[str]
+    ):
+        with self._conn() as con:
+            uid = str(server_uid)
+            with con:
+                existing_server = con.execute(
+                    "SELECT count(*) from servers where uid = ? AND deleted = 0",
+                    (uid,)
+                )
+                (existing,) = existing_server.fetchone()
+
+                if existing == 0:
+                    return
+
+                now = datetime.now().isoformat()
+                con.executemany(
+                    """
+                    INSERT INTO user_servers (username, uid, created_at, created_by)
+                    VALUES (?, ?, ?, ?)
+                    ON CONFLICT (username, uid) DO UPDATE SET
+                        deleted = 0,
+                        updated_at=excluded.created_at,
+                        updated_by=excluded.created_by
+                    """,
+                    [(user, uid, now, acting_user) for user in users]
+                )
+
+                con.execute(
+                    f"""
+                    UPDATE user_servers SET 
+                        deleted = 1,
+                        updated_at= ?,
+                        updated_by = ?
+                    WHERE uid = ?
+                    AND username NOT IN ({",".join("?" * len(users))})
+                    """,
+                    (now, acting_user, uid, *users)
+                )
+
+    @override
+    async def get_assigned_usernames(self, server_uid: uuid.UUID) -> list[str]:
+        with self._conn() as con:
+            cur = con.execute(
+                "SELECT username FROM user_servers WHERE uid = ? AND deleted = 0",
+                (str(server_uid),)
+            )
+
+            cur.row_factory = lambda _, row: row[0]
+
+            return cur.fetchall()
+
+    @override
+    async def delete(self, uid: uuid.UUID, acting_user: Optional[str]) -> None:
+        with self._conn() as con:
+            with con:
+                now = datetime.now().isoformat()
+                con.execute(
+                    """
+                    UPDATE servers SET 
+                        deleted = 1,
+                        updated_at = ?,
+                        updated_by = ?
+                    WHERE uid = ?
+                    """,
+                    (now, acting_user, str(uid))
+                )
+
+                con.execute(
+                    """
+                    UPDATE user_servers SET 
+                        deleted = 1,
+                        updated_at = ?,
+                        updated_by = ?
+                    WHERE uid = ?
+                    """,
+                    (now, acting_user, str(uid))
+                )
