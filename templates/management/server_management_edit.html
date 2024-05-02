@@ -7,7 +7,7 @@
 <div id="content" hx-swap-oob="true">
     <div class="box">
         <span class="margin-block-end block titlebar">{{ server.name|default('New server') }}</span>
-        <form class="table rows" id="server-upsert" hx-put="/server-mgmt/edit/">
+        <form class="table rows" id="server-upsert" hx-post="/server-mgmt/edit/">
             {% if server %}
             <input type="hidden" name="uid" value="{{ server.uid }}">
             {% endif %}

@@ -1,0 +1,52 @@
+{% if server %}
+<title> PyCon - Server edit - {{ server.name }}</title>
+{% else %}
+<title>PyCon - New server</title>
+{% endif %}
+
+<div id="content" hx-swap-oob="true">
+    <div class="box">
+        <span class="margin-block-end block titlebar">{{ user.name|default('New user') }}</span>
+        <form class="table rows" id="server-upsert" hx-post="/user-mgmt/edit/">
+            {% if user %}
+            <input type="hidden" name="username" value="{{ user }}">
+            {% else %}
+            <p>
+                <label for="f_username">Username</label>
+                <input id="f_username" required name="username" type="text">
+            </p>
+            {% endif %}
+            <p>
+                <label for="f_password">Password</label>
+                <input id="f_password" {% if not user %} required {% endif %} name="password" type="password">
+            </p>
+
+            <p>
+                <label for="f_disabled">Disabled</label>
+                <input id="f_disabled" name="disabled" type="checkbox" value="{{ user.disabled }}">
+            </p>
+
+            <p>
+                <label for="f_capabilities">Capabilities (hold Ctrl/Cmd for multi-select)</label>
+                <select id="f_capabilities" name="capabilities" multiple>
+                    {% for capability in all_capabilities %}
+                    <option class="f_capability_value" value="{{ capability.name }}" {% if capability in user.capabilities %} selected {% endif %}>{{ capability.value }}</option>
+                    {% endfor %}
+                </select>
+                <button type="button" _="on click set .f_capability_value.selected to false">Reset capabilities</button>
+            </p>
+
+            <p>
+                <button class="big" type="submit" hx-disabled-elt>
+                    {{ 'Update' if user else 'Create' }}
+                </button>
+
+                {% if user %}
+                <button class="big" hx-delete="/user-mgmt/{{ user.name }}/" hx-disabled-elt>
+                    Delete
+                </button>
+                {% endif %}
+            </p>
+        </form>
+    </div>
+</div>

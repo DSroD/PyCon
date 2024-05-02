@@ -34,7 +34,7 @@ def from_form_data(
         port: Annotated[int, Form()],
         rcon_port: Annotated[int, Form()],
         rcon_password: Annotated[str, Form()],
-):
+) -> Server:
     """Returns server model from Form data."""
     return Server(
         uid=uid,

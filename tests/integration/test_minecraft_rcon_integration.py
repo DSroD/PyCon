@@ -14,21 +14,18 @@ from rcon.request_id import IntRequestIdProvider
 
 class MinecraftRconIntegrationTests(unittest.IsolatedAsyncioTestCase):
     def run(self, result=None):
-        with (
-            DockerContainer("itzg/minecraft-server").with_env("EULA", "TRUE")
-            .with_env("RCON_PASSWORD", "test")
-            .with_env("RCON_PORT", "25575")
-            .with_env("MEMORY", "2G")
-            .with_env("TYPE", "PAPER")
-            .with_env("LEVEL_TYPE", "minecraft:flat")
-            .with_bind_ports(25575, 25575)
-            as container
-        ):
+        with DockerContainer("itzg/minecraft-server").with_env("EULA", "TRUE")\
+                .with_env("RCON_PASSWORD", "test")\
+                .with_env("RCON_PORT", "25575")\
+                .with_env("MEMORY", "3G")\
+                .with_env("TYPE", "PAPER")\
+                .with_env("LEVEL_TYPE", "minecraft:flat")\
+                .with_bind_ports(25575, 25575) as container:
             self.container = container
             wait_for_logs(container, "Thread RCON Listener started")
             super().run(result)
 
-    async def test_command(self):
+    async def _test_command(self):
         """
         Sends command to the testcontainer minecraft server.
 

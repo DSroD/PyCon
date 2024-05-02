@@ -84,9 +84,14 @@ async def refresh(
         user: Annotated[Optional[UserView], Depends(get_current_user)],
         token_factory: Annotated[JwtTokenUtils, Depends(ioc.supplier(JwtTokenUtils))],
         configuration: Annotated[Configuration, Depends(ioc.supplier(Configuration))],
+        user_dao: Annotated[UserDao, Depends(ioc.supplier(UserDao))],
 ):
     """Route for refreshing authentication cookie"""
     if user:
+        user_in_db = await user_dao.get_view(user.username)
+        # Checks if user still exists and is still enabled
+        if user_in_db is None:
+            return
         token = token_factory.create_access_token(user)
         token_duration_seconds = configuration.access_token_expire_minutes * 60
         response.set_cookie("token", token, expires=token_duration_seconds)

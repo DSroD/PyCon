@@ -1,8 +1,11 @@
 """User models and views."""
 from enum import Enum
-from typing import Union
+from typing import Annotated, Optional
 
+from fastapi import Form
 from pydantic import BaseModel
+
+from auth.hashing import hash_password
 
 
 class UserCapability(Enum):
@@ -19,7 +22,30 @@ class UserView(BaseModel):
     capabilities: list[UserCapability]
 
 
+class UserUpsert(UserView):
+    """Model for user upsert"""
+    disabled: bool = False
+    hashed_password: Optional[str]
+
+
 class User(UserView):
     """User model."""
     hashed_password: str
-    disabled: Union[bool, None] = None
+    disabled: bool = False
+
+
+def from_form_data(
+        username: Annotated[str, Form()],
+        capabilities: Annotated[list[str], Form()] = [],
+        disabled: Annotated[bool, Form()] = False,
+        password: Annotated[Optional[str], Form()] = None,
+) -> UserUpsert:
+    """Returns user model from Form data."""
+    hashed_pwd = hash_password(password) if password else None
+    caps = list(map(lambda x: UserCapability[x], capabilities))
+    return UserUpsert(
+        username=username,
+        hashed_password=hashed_pwd,
+        disabled=disabled,
+        capabilities=caps
+    )

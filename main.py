@@ -18,7 +18,7 @@ from messages.notifications import NotificationConverter
 from models.user import UserCapability
 from pubsub.inprocess import InProcessPubSub
 from pubsub.pubsub import PubSub
-from routes import auth, index, servers
+from routes import auth, index, servers, users
 from services.heartbeat import HeartbeatPublisherService
 from services.rcon_service import RconService
 from services.server_status import ServerStatusService
@@ -125,6 +125,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 app.include_router(auth.router)
 app.include_router(index.router)
 app.include_router(servers.router)
+app.include_router(users.router)
 
 
 if __name__ == "__main__":

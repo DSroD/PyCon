@@ -7,7 +7,7 @@ from typing import Optional, override
 
 from dao.dao import ServerDao, UserDao
 from models.server import Server
-from models.user import UserView, User, UserCapability
+from models.user import UserView, User, UserCapability, UserUpsert
 from utils.sqlite import model_mapper, enum_mapper
 
 
@@ -26,7 +26,7 @@ class UserDaoImpl(UserDao):
     @override
     async def get_all_usernames(self) -> list[str]:
         with self._conn() as con:
-            cur = con.execute("SELECT username FROM users")
+            cur = con.execute("SELECT username FROM users WHERE deleted = 0")
 
             rows = cur.fetchall()
             return list(map(lambda x: x['username'], rows))
@@ -35,7 +35,7 @@ class UserDaoImpl(UserDao):
     async def get_view(self, username: str) -> Optional[UserView]:
         with self._conn() as con:
             user_cur = con.execute(
-                "SELECT username FROM users WHERE username = ?",
+                "SELECT username FROM users WHERE username = ? AND deleted = 0 AND disabled = 0",
                 (username,)
             )
             user = user_cur.fetchone()
@@ -111,6 +111,68 @@ class UserDaoImpl(UserDao):
                 )
 
             return UserView(username=username, capabilities=capabilities)
+
+    @override
+    async def upsert_user(self, upsert: UserUpsert, acting_user: Optional[str]):
+        with self._conn() as con:
+            with con:
+                action_at = datetime.now().isoformat()
+                pwd_cur = con.execute(
+                    """
+                    SELECT hashed_password FROM users 
+                    WHERE username = ?
+                    AND deleted = 0
+                    """,
+                    (upsert.username,)
+                )
+
+                pwd = pwd_cur.fetchone()
+
+                con.execute(
+                    """
+                    INSERT INTO users(username, hashed_password, disabled, created_at, created_by)
+                    VALUES (?, COALESCE(?, ?), ?, ?, ?)
+                    ON CONFLICT(username) DO UPDATE SET
+                        hashed_password = COALESCE(excluded.hashed_password, users.hashed_password),
+                        disabled = excluded.disabled,
+                        updated_by = excluded.created_by,
+                        updated_at = excluded.created_at,
+                        deleted = 0
+                    """,
+                    (upsert.username, upsert.hashed_password, pwd, upsert.disabled, action_at, acting_user)
+                )
+                caps = list(
+                    map(
+                        lambda cap: (upsert.username, cap.name, action_at, acting_user),
+                        upsert.capabilities
+                    )
+                )
+
+                con.executemany(
+                    """
+                    INSERT INTO user_capabilities(username, capability, created_at, created_by) 
+                    VALUES (?, ?, ?, ?)
+                    ON CONFLICT(username, capability) DO UPDATE SET
+                        updated_by = excluded.created_by,
+                        updated_at = excluded.created_at,
+                        deleted=0
+                    WHERE user_capabilities.deleted=1
+                    """,
+                    caps
+                )
+
+                con.execute(
+                    f"""
+                    UPDATE user_capabilities
+                    SET 
+                        deleted = 1,
+                        updated_by = ?,
+                        updated_at = ?
+                    WHERE username = ?
+                    AND capability NOT IN ({",".join(('?',)*len(upsert.capabilities))})
+                    """,
+                    (acting_user, action_at, upsert.username, *map(lambda x: x.name, upsert.capabilities))
+                )
 
     @override
     async def delete_user(self, username: str, acting_user: Optional[str]) -> None:

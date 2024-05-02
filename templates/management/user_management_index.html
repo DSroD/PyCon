@@ -1,0 +1,13 @@
+<title>PyCon - User management</title>
+<div id="content" hx-swap-oob="true">
+    User management
+    <div class="box">
+        <strong class="block titlebar">Users</strong>
+        <ul>
+        {% for username in usernames %}
+            <li><a hx-get="/user-mgmt/edit/?user={{ username }}">{{ username }}</a></li>
+        {% endfor %}
+        </ul>
+        <button class="margin padding" type="button" hx-get="/user-mgmt/edit/">Add new user</button>
+    </div>
+</div>

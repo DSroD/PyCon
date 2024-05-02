@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Optional
 
 from models.server import Server
-from models.user import UserView, User, UserCapability
+from models.user import UserView, User, UserCapability, UserUpsert
 
 
 class ServerDao(ABC):
@@ -88,6 +88,15 @@ class UserDao(ABC):
         :param username: Username
         :param hashed_password: Password hash
         :param capabilities: List of user capabilities.
+        :param acting_user: Name of the user performing this operation.
+        """
+
+    @abstractmethod
+    async def upsert_user(self, upsert: UserUpsert, acting_user: Optional[str]):
+        """
+        Upserts a user.
+
+        :param upsert: User upsert
         :param acting_user: Name of the user performing this operation.
         """
 

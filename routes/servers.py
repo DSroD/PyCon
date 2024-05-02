@@ -128,7 +128,7 @@ async def server_management_edit(
     ).to_response()
 
 
-@router.put("/server-mgmt/edit/", tags=["server-management"])
+@router.post("/server-mgmt/edit/", tags=["server-management"])
 async def server_management_upsert(
         user: Annotated[
             Optional[UserView],
@@ -162,7 +162,8 @@ async def server_management_upsert(
     )
 
     return response_factory(
-        template="management/server_management_success.html",
+        template="management/management_success.html",
+        context={"route": "/server-mgmt/"},
     ).to_response()
 
 
@@ -187,7 +188,8 @@ async def server_management_delete(
     await server_dao.delete(server_uid, user.username)
 
     return response_factory(
-        template="management/server_management_success.html",
+        template="management/management_success.html",
+        context={"route": "/server-mgmt/"},
     ).to_response()
 
 
