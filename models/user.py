@@ -36,12 +36,13 @@ class User(UserView):
 
 def from_form_data(
         username: Annotated[str, Form()],
-        capabilities: Annotated[list[str], Form()] = [],
+        capabilities: Annotated[list[str], Form()] = None,
         disabled: Annotated[bool, Form()] = False,
         password: Annotated[Optional[str], Form()] = None,
 ) -> UserUpsert:
     """Returns user model from Form data."""
     hashed_pwd = hash_password(password) if password else None
+    capabilities = capabilities if capabilities else []
     caps = list(map(lambda x: UserCapability[x], capabilities))
     return UserUpsert(
         username=username,

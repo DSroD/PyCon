@@ -1,5 +1,4 @@
 """Client for RCON communication."""
-#from __future__ import annotations
 
 import asyncio
 import logging
@@ -73,12 +72,10 @@ class RconClient:
             server: Server,
             connection: RconConnection,
             request_id_provider: IntRequestIdProvider,
-            payload_encoding: str,
     ):
         self._server = server
         self._connection = connection
         self._request_id_provider = request_id_provider
-        self._payload_encoding = payload_encoding
         self._responses: dict[int, list[bytes]] = defaultdict(list)
         self._requests: dict[int, RconClient.RequestMetadata] = {}
 
@@ -127,18 +124,22 @@ class RconClient:
         cmd_metadata = self._requests[ending_id]
         body_parts = self._responses[cmd_metadata.request_id]
         body = b"".join(body_parts)
-        response = body.decode(self._payload_encoding)
+        enc = encoding(self._server.type)
+        response = body.decode(enc)
         return RconResponse(
             issuing_user=cmd_metadata.issuing_user,
+            server_type=self._server.type,
             command=cmd_metadata.command,
             response=response
         )
 
     def close(self):
+        """Closes the connection."""
         self._connection.close()
 
     @property
     def server(self) -> Server:
+        """Returns model of the server this client is connected to."""
         return self._server
 
 
@@ -154,6 +155,7 @@ class RconClientManager:
         self._server_supplier = server_supplier
         self._timeout = timeout
         self.responses = defaultdict(set)
+        self._client = None
 
     async def __aenter__(self) -> RconClient:
         self._client = await retry(
@@ -183,7 +185,7 @@ class RconClientManager:
         server = await self._server_supplier()
 
         if server is None:
-            raise ValueError("Server not found")  # TODO: better exception
+            raise ValueError("Server not found")  # TODO: better exception?
 
         logger.info(
             "Connecting to RCON %s:%s",
@@ -205,6 +207,22 @@ class RconClientManager:
         )
 
         await conn.send(login_packet)
+
+        # Source dedicated server sends empty "command response" packet before login response
+        # TODO: add test for this
+        if server.type == Server.Type.SOURCE_SERVER:
+            serverdata_response = await conn.read()
+            match serverdata_response:
+                case CommandResponse(resp_req_id, payload):
+                    if resp_req_id != request_id:
+                        raise RequestIdMismatchError(request_id, resp_req_id)
+                    if payload != b"":
+                        raise InvalidPacketError("Expected empty packet.")
+                case _:
+                    raise InvalidPacketError(
+                        "Expected SERVERDATA_RESPONSE_VALUE response prior to login response."
+                    )
+
         login_response = await conn.read()
         match login_response:
             case LoginSuccessResponse(resp_req_id):
@@ -241,5 +259,5 @@ class RconClientManager:
         return RconClient(
             server,
             conn,
-            self._request_id_provider,
-            encoding(server.type))
+            self._request_id_provider
+        )

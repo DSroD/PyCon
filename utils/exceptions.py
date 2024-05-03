@@ -1,10 +1,10 @@
 """Utilities for exceptions."""
 
 
-def leaves[ExcT](eg: ExceptionGroup[ExcT]) -> list[ExcT]:
+def leaves[ExcT](exception_group: ExceptionGroup[ExcT]) -> list[ExcT]:
     """
     Flattens exception groups into a list of exceptions.
-    :param eg: Exception group
+    :param exception_group: Exception group
     :return: List of exceptions in a group
     """
     def to_list_ref(eg: ExceptionGroup[ExcT], lst: list[ExcT]) -> list[ExcT]:
@@ -15,4 +15,4 @@ def leaves[ExcT](eg: ExceptionGroup[ExcT]) -> list[ExcT]:
                 lst.append(exc)
         return lst
 
-    return to_list_ref(eg, [])
+    return to_list_ref(exception_group, [])

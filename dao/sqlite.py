@@ -139,7 +139,14 @@ class UserDaoImpl(UserDao):
                         updated_at = excluded.created_at,
                         deleted = 0
                     """,
-                    (upsert.username, upsert.hashed_password, pwd, upsert.disabled, action_at, acting_user)
+                    (
+                        upsert.username,
+                        upsert.hashed_password,
+                        pwd,
+                        upsert.disabled,
+                        action_at,
+                        acting_user
+                    )
                 )
                 caps = list(
                     map(
@@ -171,7 +178,12 @@ class UserDaoImpl(UserDao):
                     WHERE username = ?
                     AND capability NOT IN ({",".join(('?',)*len(upsert.capabilities))})
                     """,
-                    (acting_user, action_at, upsert.username, *map(lambda x: x.name, upsert.capabilities))
+                    (
+                        acting_user,
+                        action_at,
+                        upsert.username,
+                        *map(lambda x: x.name, upsert.capabilities)
+                    )
                 )
 
     @override
@@ -230,7 +242,6 @@ class UserDaoImpl(UserDao):
 
 class ServerDaoImpl(ServerDao):
     """SQLite backed implementation of Server Dao."""
-
 
     def __init__(self, db_name):
         self._db_name = db_name

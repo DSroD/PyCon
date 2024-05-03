@@ -28,3 +28,10 @@ services:
       RCON_PASSWORD: "pwd2"
       MAX_MEMORY: 2G
       RCON_PORT: 25575
+
+  css1:
+    image: foxylion/steam-css
+    ports:
+      - "27016:27015"
+    environment:
+      RCON_PASSWORD: "pwd_css"

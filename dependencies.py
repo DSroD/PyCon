@@ -61,7 +61,7 @@ def dao_factory(config: Configuration) -> tuple[UserDao, ServerDao]:
             )
 
 
-def migrator_factory(config: Configuration) -> Callable[[],None]:
+def migrator_factory(config: Configuration) -> Callable[[], None]:
     """
     Creates callable that performs migration for configured
     persistence provider.
@@ -87,6 +87,7 @@ def get_current_user(
 
 
 def user_with_capabilities(capabilities: list[UserCapability]):
+    """Returns current user if authenticated and user has required capabilities."""
     def get_with_capabilities(
             user: Annotated[Optional[UserView], Depends(get_current_user)]
     ) -> UserView:
