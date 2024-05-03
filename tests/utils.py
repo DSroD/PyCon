@@ -24,3 +24,19 @@ class TestTimeProvider:
     def pass_time(self, delta: timedelta):
         """Moves time by given timedelta"""
         self._time += delta
+
+
+class PacketProvider:
+    """Provides packets"""
+    def __init__(self, packets: bytes):
+        self._packets = packets
+
+    def __call__(self, n: int):
+        return self._get(n)
+
+    async def _get(self, n: int):
+        if n > len(self._packets):
+            raise asyncio.IncompleteReadError(self._packets, n)
+        res = self._packets[:n]
+        self._packets = self._packets[n:]
+        return res

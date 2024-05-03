@@ -209,7 +209,6 @@ class RconClientManager:
         await conn.send(login_packet)
 
         # Source dedicated server sends empty "command response" packet before login response
-        # TODO: add test for this
         if server.type == Server.Type.SOURCE_SERVER:
             serverdata_response = await conn.read()
             match serverdata_response:

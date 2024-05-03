@@ -21,7 +21,7 @@ class PersistenceIntegrationTests(ABC):
         hashed_pwd = "hashed_pwd"
         capabilities = [UserCapability.USER_MANAGEMENT]
 
-        created = await self._user_dao().create_user(username, hashed_pwd, capabilities, None)
+        created = await self._user_dao().create(username, hashed_pwd, capabilities, None)
 
         user_view_from_db = await self._user_dao().get_view(username)
 
@@ -42,7 +42,7 @@ class PersistenceIntegrationTests(ABC):
         """Tests multiple users creation and retrieval of all usernames."""
         usernames = ["test1", "test2", "test3"]
         for username in usernames:
-            await self._user_dao().create_user(username, "pwd", [], None)
+            await self._user_dao().create(username, "pwd", [], None)
 
         users = await self._user_dao().get_all_usernames()
         self.assertEqual(users, usernames)
@@ -54,8 +54,8 @@ class PersistenceIntegrationTests(ABC):
         hashed_pwd2 = "hashed_pwd2"
         capabilities = []
 
-        _ = await self._user_dao().create_user(username, hashed_pwd1, capabilities, None)
-        not_created = await self._user_dao().create_user(username, hashed_pwd2, capabilities, None)
+        _ = await self._user_dao().create(username, hashed_pwd1, capabilities, None)
+        not_created = await self._user_dao().create(username, hashed_pwd2, capabilities, None)
 
         user = await self._user_dao().get(username)
 

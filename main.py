@@ -18,9 +18,9 @@ from messages.notifications import NotificationConverter
 from models.user import UserCapability
 from pubsub.inprocess import InProcessPubSub
 from pubsub.pubsub import PubSub
+from rcon.rcon_service import RconService
 from routes import auth, index, servers, users
 from services.heartbeat import HeartbeatPublisherService
-from services.rcon_service import RconService
 from services.server_status import ServerStatusService
 from services.service import ServiceLauncher
 from templating import TemplateProvider
@@ -71,7 +71,7 @@ async def startup():
     default_user_pwd = hash_password(configuration.default_user_password)
 
     logger.info("Creating user %s", configuration.default_user_name)
-    await user_dao.create_user(
+    await user_dao.create(
         configuration.default_user_name,
         default_user_pwd,
         [

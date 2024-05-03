@@ -9,7 +9,7 @@
         <span class="margin-block-end block titlebar">{{ user.name|default('New user') }}</span>
         <form class="table rows" id="server-upsert" hx-post="/user-mgmt/edit/">
             {% if user %}
-            <input type="hidden" name="username" value="{{ user }}">
+            <input type="hidden" name="username" value="{{ user.username }}">
             {% else %}
             <p>
                 <label for="f_username">Username</label>
@@ -23,7 +23,7 @@
 
             <p>
                 <label for="f_disabled">Disabled</label>
-                <input id="f_disabled" name="disabled" type="checkbox" value="{{ user.disabled }}">
+                <input id="f_disabled" name="disabled" type="checkbox" {% if user.disabled %} checked {% endif %}">
             </p>
 
             <p>
@@ -42,7 +42,7 @@
                 </button>
 
                 {% if user %}
-                <button class="big" hx-delete="/user-mgmt/{{ user.name }}/" hx-disabled-elt>
+                <button class="big" hx-delete="/user-mgmt/{{ user.name }}/" hx-disabled-elt hx-prompt="Enter users name to confirm deletion:">
                     Delete
                 </button>
                 {% endif %}

@@ -1,7 +1,6 @@
 """RCON packet tests."""
 # pylint: disable=missing-class-docstring
 
-import asyncio
 import unittest
 
 from models.server import Server
@@ -14,6 +13,7 @@ from rcon.packets import (
     InvalidPasswordResponse,
     CommandResponse, encoding
 )
+from tests.utils import PacketProvider
 
 
 class PacketTest(unittest.IsolatedAsyncioTestCase):
@@ -97,18 +97,3 @@ class PacketTest(unittest.IsolatedAsyncioTestCase):
         packet = await next_packet(content)
 
         self.assertEqual(packet, CommandResponse(7, payload))
-
-
-class PacketProvider:
-    def __init__(self, packet: bytes):
-        self._packet = packet
-
-    def __call__(self, n: int):
-        return self._get(n)
-
-    async def _get(self, n: int):
-        if n > len(self._packet):
-            raise asyncio.IncompleteReadError(self._packet, n)
-        res = self._packet[:n]
-        self._packet = self._packet[n:]
-        return res

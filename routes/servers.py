@@ -5,6 +5,7 @@ from typing import Annotated, Callable, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocketException, status, Form
 from fastapi.websockets import WebSocket
+from fastapi.requests import Request
 
 from dao.dao import ServerDao, UserDao
 from dependencies import (
@@ -20,7 +21,7 @@ from models.server import Server, from_form_data
 from models.user import UserView, UserCapability
 from pubsub.filter import FieldEquals
 from pubsub.pubsub import PubSub
-from services.rcon_service import RconService, rcon_service_name
+from rcon.rcon_service import RconService, rcon_service_name
 from services.server_status import ServerStatusService
 from services.service import ServiceLauncher
 from websocket_processor import WebsocketProcessor as WsProcessor, WebsocketPubSub
@@ -169,6 +170,7 @@ async def server_management_upsert(
 
 @router.delete("/server-mgmt/{uid}", tags=["server-management"])
 async def server_management_delete(
+        request: Request,
         uid: str,
         user: Annotated[
             Optional[UserView],
@@ -181,9 +183,15 @@ async def server_management_delete(
     """Route for deleting a server"""
     server_uid = uuid.UUID(uid)
 
-    name = rcon_service_name(server_uid)
+    server = await server_dao.get_by_uid(server_uid)
+    prompted_name = request.headers.get("HX-Prompt", None)
 
-    service_launcher.stop_service(name)
+    if prompted_name != server.name:
+        raise HTTPException(status_code=400)
+
+    service_name = rcon_service_name(server_uid)
+
+    service_launcher.stop_service(service_name)
 
     await server_dao.delete(server_uid, user.username)
 

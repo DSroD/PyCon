@@ -19,8 +19,8 @@
             <p>
                 <label for="f_type">Game type</label>
                 <select id="f_type" required name="server_type">
-                    <option {% if server.type=="MINECRAFT_SERVER" %} selected {% endif %} value="MINECRAFT_SERVER">Minecraft</option>
-                    <option {% if server.type=="SOURCE_SERVER" %} selected {% endif %} value="SOURCE_SERVER">Source Dedicated Server</option>
+                    <option {% if server.type.name=="MINECRAFT_SERVER" %} selected {% endif %} value="MINECRAFT_SERVER">Minecraft</option>
+                    <option {% if server.type.name=="SOURCE_SERVER" %} selected {% endif %} value="SOURCE_SERVER">Source Dedicated Server</option>
                 </select>
             </p>
 
@@ -64,7 +64,7 @@
                 </button>
 
                 {% if server %}
-                <button class="big" hx-delete="/server-mgmt/{{ server.uid }}/" hx-disabled-elt>
+                <button type="button" class="big" hx-delete="/server-mgmt/{{ server.uid }}/" hx-disabled-elt hx-prompt="Enter server name to confirm deletion:">
                     Delete
                 </button>
                 {% endif %}

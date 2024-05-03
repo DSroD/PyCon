@@ -75,7 +75,7 @@ class UserDao(ABC):
         """
 
     @abstractmethod
-    async def create_user(
+    async def create(
             self,
             username: str,
             hashed_password: str,
@@ -92,7 +92,7 @@ class UserDao(ABC):
         """
 
     @abstractmethod
-    async def upsert_user(self, upsert: UserUpsert, acting_user: Optional[str]):
+    async def upsert(self, upsert: UserUpsert, acting_user: Optional[str]):
         """
         Upserts a user.
 
@@ -101,7 +101,7 @@ class UserDao(ABC):
         """
 
     @abstractmethod
-    async def delete_user(self, username: str, acting_user: Optional[str]) -> None:
+    async def delete(self, username: str, acting_user: Optional[str]) -> None:
         """
         Removes user by username (if exists).
 
@@ -116,21 +116,6 @@ class UserDao(ABC):
 
         :param username: Username
         :return: User if exists, None otherwise.
-        """
-
-    @abstractmethod
-    async def set_disabled(
-            self,
-            username: str,
-            disabled: bool,
-            acting_user: Optional[str]
-    ) -> None:
-        """
-        Sets disabled flag of a user (if exists).
-
-        :param username: Username
-        :param disabled: Value of the disabled flag to set
-        :param acting_user: Name of the user performing this operation.
         """
 
     @abstractmethod

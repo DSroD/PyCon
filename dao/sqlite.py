@@ -60,7 +60,7 @@ class UserDaoImpl(UserDao):
         return caps
 
     @override
-    async def create_user(
+    async def create(
             self,
             username: str,
             hashed_password: str,
@@ -113,7 +113,7 @@ class UserDaoImpl(UserDao):
             return UserView(username=username, capabilities=capabilities)
 
     @override
-    async def upsert_user(self, upsert: UserUpsert, acting_user: Optional[str]):
+    async def upsert(self, upsert: UserUpsert, acting_user: Optional[str]):
         with self._conn() as con:
             with con:
                 action_at = datetime.now().isoformat()
@@ -126,7 +126,7 @@ class UserDaoImpl(UserDao):
                     (upsert.username,)
                 )
 
-                pwd = pwd_cur.fetchone()
+                (pwd,) = pwd_cur.fetchone()
 
                 con.execute(
                     """
@@ -187,7 +187,7 @@ class UserDaoImpl(UserDao):
                 )
 
     @override
-    async def delete_user(self, username: str, acting_user: Optional[str]) -> None:
+    async def delete(self, username: str, acting_user: Optional[str]) -> None:
         with self._conn() as con:
             with con:
                 now = datetime.now().isoformat()
@@ -224,10 +224,6 @@ class UserDaoImpl(UserDao):
                 disabled=user["disabled"],
                 capabilities=caps
             )
-
-    @override
-    async def set_disabled(self, username: str, disabled: bool, acting_user: Optional[str]) -> None:
-        pass
 
     @override
     async def get_capabilities(self, username: str) -> list[UserCapability]:

@@ -10,6 +10,28 @@ from sqlite3 import Connection
 logger = logging.getLogger(__name__)
 
 
+def migrate(
+        db: str | Connection,
+        migrations_file="migrations.json",
+        close=True
+):
+    """Performs sqlite db migrations from migrations.json file"""
+    con = sqlite3.connect(db) if isinstance(db, str) else db
+    with con:
+        _create_if_not_exists(con)
+
+    applied = _get_migrations(con)
+    with open(migrations_file, "r", encoding='utf-8') as mig_file:
+        migs = json.load(mig_file)
+        for mig_name, mig_op in migs.items():
+            if mig_name in applied:
+                continue
+            _apply_mig(con, mig_name, mig_op)
+            logger.info("Performed migration %s", mig_name)
+    if close:
+        con.close()
+
+
 def _create_if_not_exists(con: Connection):
     con.execute("CREATE TABLE IF NOT EXISTS migrations(name VARCHAR PRIMARY KEY, executed_at TEXT)")
 
@@ -88,25 +110,3 @@ def _apply_mig(con: Connection, mig_name: str, mig_op: dict):
         else:
             raise ValueError("Unknown migration type.")
         _insert_executed_migration(con, mig_name)
-
-
-def migrate(
-        db: str | Connection,
-        migrations_file="migrations.json",
-        close=True
-):
-    """Performs sqlite db migrations from migrations.json file"""
-    con = sqlite3.connect(db) if isinstance(db, str) else db
-    with con:
-        _create_if_not_exists(con)
-
-    applied = _get_migrations(con)
-    with open(migrations_file, "r", encoding='utf-8') as mig_file:
-        migs = json.load(mig_file)
-        for mig_name, mig_op in migs.items():
-            if mig_name in applied:
-                continue
-            _apply_mig(con, mig_name, mig_op)
-            logger.info("Performed migration %s", mig_name)
-    if close:
-        con.close()
