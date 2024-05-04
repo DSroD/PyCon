@@ -43,8 +43,6 @@ def minecraft_colored_str_to_html(text: str):
     :param text: String with bukkit color codes
     :return: HTML string with colored text
     """
-    # TODO: implement mapping from color codes (such as §e)
-    #       to HTML tags with corresponding color text style
     color = _colormap["f"]
     fmts = []
     partial = ""
@@ -56,6 +54,7 @@ def minecraft_colored_str_to_html(text: str):
             nfmt = True
             continue
 
+        # Format reset
         if nfmt and char == "r":
             nfmt = False
             result += _apply_fmt(partial, fmts, color)
@@ -64,6 +63,7 @@ def minecraft_colored_str_to_html(text: str):
             partial = ""
             continue
 
+        # Colored text
         if nfmt and char in _colormap:
             nfmt = False
             result += _apply_fmt(partial, fmts, color)
@@ -74,6 +74,7 @@ def minecraft_colored_str_to_html(text: str):
             partial = ""
             continue
 
+        # Formatted text
         if nfmt and char in _formatmap:
             nfmt = False
             result += _apply_fmt(partial, fmts, color)
@@ -81,6 +82,7 @@ def minecraft_colored_str_to_html(text: str):
             partial = ""
             continue
 
+        # Unknown code - keep
         if nfmt:
             nfmt = False
             partial += f"§{char}"

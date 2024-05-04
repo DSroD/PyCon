@@ -25,7 +25,7 @@ class MinecraftRconIntegrationTests(unittest.IsolatedAsyncioTestCase):
             wait_for_logs(container, "Thread RCON Listener started")
             super().run(result)
 
-    async def _test_command(self):
+    async def test_command(self):
         """
         Sends command to the testcontainer minecraft server.
 

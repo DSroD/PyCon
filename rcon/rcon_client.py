@@ -168,6 +168,7 @@ class RconClientManager:
                 asyncio.TimeoutError,
                 ConnectionRefusedError,
                 OSError,
+                asyncio.IncompleteReadError,
             ),
             RetryConfiguration(
                 backoff_ms=1000,

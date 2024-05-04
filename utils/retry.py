@@ -39,6 +39,8 @@ async def retry_jitter_exponential_backoff[OutT, FailureT](
         try:
             return await coro()
         except exc_types as e:
+            if on_failure:
+                await on_failure()
             if retry_configuration.max_tries and try_num >= retry_configuration.max_tries:
                 raise
 
@@ -48,14 +50,14 @@ async def retry_jitter_exponential_backoff[OutT, FailureT](
                 -retry_configuration.jitter_ms,
                 retry_configuration.jitter_ms
             ) if retry_configuration.jitter_ms else 0
+            delay_computed = exp_ms + add_ms
+            mx = retry_configuration.max_backoff_ms
+            max_delay = mx if mx else delay_computed
             delay_seconds = max(
                 retry_configuration.backoff_ms, min(
-                    exp_ms + add_ms, retry_configuration.max_backoff_ms
+                    delay_computed, max_delay
                 )
             ) / 1000
-
-            if on_failure:
-                await on_failure()
 
             logger.log(
                 retry_configuration.log_level,
@@ -64,4 +66,3 @@ async def retry_jitter_exponential_backoff[OutT, FailureT](
             )
 
             await asyncio.sleep(delay_seconds)
-            continue
