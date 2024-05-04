@@ -126,7 +126,8 @@ class UserDaoImpl(UserDao):
                     (upsert.username,)
                 )
 
-                (pwd,) = pwd_cur.fetchone()
+                fetched = pwd_cur.fetchone()
+                (pwd, ) = fetched if fetched else (None, )
 
                 con.execute(
                     """
