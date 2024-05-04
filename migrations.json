@@ -1,0 +1,194 @@
+{
+  "initialize_users_table": {
+    "type": "create_table",
+    "table_name": "users",
+    "columns": {
+      "username": {
+        "type": "varchar",
+        "nullable": false
+      },
+      "hashed_password": {
+        "type": "varchar",
+        "nullable": false
+      },
+      "disabled": {
+        "type": "integer",
+        "nullable": false,
+        "default": 0
+      },
+      "deleted": {
+        "type": "integer",
+        "nullable": false,
+        "default": 0
+      },
+      "created_at": {
+        "type": "varchar",
+        "nullable": false
+      },
+      "created_by": "varchar",
+      "updated_at": "string",
+      "updated_by": "varchar"
+    },
+    "pk": "username",
+    "fk": {
+      "updated_by": {
+        "table": "users",
+        "column": "username"
+      },
+      "created_by": {
+        "table": "users",
+        "column": "username"
+      }
+    }
+  },
+
+  "initialize_servers_table": {
+    "type": "create_table",
+    "table_name": "servers",
+    "columns": {
+      "uid": {
+        "type": "varchar",
+        "nullable": false
+      },
+      "type": {
+        "type": "integer",
+        "nullable": false
+      },
+      "name": {
+        "type": "varchar",
+        "nullable": false
+      },
+      "description": {
+        "type": "varchar",
+        "nullable": false
+      },
+      "host": {
+        "type": "varchar",
+        "nullable": false
+      },
+      "port": {
+        "type": "integer",
+        "nullable": false
+      },
+      "rcon_port": {
+        "type": "integer",
+        "nullable": false
+      },
+      "rcon_password": {
+        "type": "varchar",
+        "nullable": false
+      },
+      "deleted": {
+        "type": "integer",
+        "nullable": false,
+        "default": 0
+      },
+      "created_at": {
+        "type": "varchar",
+        "nullable": false
+      },
+      "created_by": "varchar",
+      "updated_at": "string",
+      "updated_by": "varchar"
+    },
+    "pk": "uid",
+    "fk": {
+      "updated_by": {
+        "table": "users",
+        "column": "username"
+      },
+      "created_by": {
+        "table": "users",
+        "column": "username"
+      }
+    }
+  },
+
+  "user_servers": {
+    "type": "create_table",
+    "table_name": "user_servers",
+    "columns": {
+      "username": {
+        "type": "varchar",
+        "nullable": false
+      },
+      "uid": {
+        "type": "varchar",
+        "nullable": false
+      },
+      "deleted": {
+        "type": "integer",
+        "nullable": false,
+        "default": 0
+      },
+      "created_at": {
+        "type": "varchar",
+        "nullable": false
+      },
+      "created_by": "varchar",
+      "updated_at": "string",
+      "updated_by": "varchar"
+    },
+    "pk": ["username", "uid"],
+    "fk": {
+      "username": {
+        "table": "users",
+        "column": "username"
+      },
+      "uid": {
+        "table": "servers",
+        "column": "uid"
+      },
+      "updated_by": {
+        "table": "users",
+        "column": "username"
+      },
+      "created_by": {
+        "table": "users",
+        "column": "username"
+      }
+    }
+  },
+
+  "user_capabilities": {
+    "type": "create_table",
+    "table_name": "user_capabilities",
+    "columns": {
+      "username": {
+        "type": "varchar",
+        "nullable": false
+      },
+      "capability": {
+        "type": "varchar",
+        "nullable": false
+      },
+      "deleted": {
+        "type": "integer",
+        "nullable": false,
+        "default": 0
+      },
+      "created_at": {
+        "type": "varchar",
+        "nullable": false
+      },
+      "created_by": "varchar",
+      "updated_at": "string",
+      "updated_by": "varchar"
+    },
+    "pk": ["username", "capability"],
+    "fk": {
+      "username": {
+        "table": "users",
+        "column": "username"
+      },
+      "updated_by": {
+        "table": "users",
+        "column": "username"
+      },
+      "created_by": {
+        "table": "users",
+        "column": "username"
+      }
+    }
+  }
+}

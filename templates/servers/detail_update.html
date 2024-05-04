@@ -1,5 +1,5 @@
 {% if rcon_connected %}
-        <div hx-swap-oob="outerHTML" hx-ext="ws" id="rcon_controls" class="box" ws-connect="/rcon/{{ server_uid }}">
+        <div hx-swap-oob="outerHTML" id="rcon_controls" class="box" ws-connect="/rcon/{{ server_uid }}">
             <form class="tool-bar" hx-on="htmx:wsAfterSend: this.reset()" ws-send>
                 <label>Command:
                     <input type="text" name="command" placeholder="command">

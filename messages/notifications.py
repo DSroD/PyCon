@@ -1,6 +1,7 @@
+"""Notifications to the frontend."""
 from dataclasses import dataclass
 from enum import Enum
-from typing import Never, Any, Optional, Literal, Callable
+from typing import Never, Any, Optional, Literal, Callable, override
 
 from jinja2 import Template
 
@@ -10,16 +11,18 @@ from pubsub.topic import TopicDescriptor
 
 @dataclass
 class NotificationMessage:
+    """Message to be shown on the frontend."""
     class NotificationType(Enum):
-        Plain = 0,
-        Info = 1,
-        Success = 2,
-        Warning = 3,
-        Error = 4,
+        """Type of the notification - decides how the notification is displayed."""
+        PLAIN = 0
+        INFO = 1
+        SUCCESS = 2
+        WARNING = 3
+        ERROR = 4
 
     audience: list[str] | Literal["all"]
     message: str
-    type: NotificationType = NotificationType.Plain
+    type: NotificationType = NotificationType.PLAIN
     remove_after: Optional[int] = None
 
 
@@ -27,22 +30,26 @@ notification_topic = TopicDescriptor[NotificationMessage]("notifications")
 
 
 cls_conversions = {
-    NotificationMessage.NotificationType.Plain: "plain",
-    NotificationMessage.NotificationType.Info: "info",
-    NotificationMessage.NotificationType.Success: "ok",
-    NotificationMessage.NotificationType.Warning: "warn",
-    NotificationMessage.NotificationType.Error: "bad",
+    NotificationMessage.NotificationType.PLAIN: "plain",
+    NotificationMessage.NotificationType.INFO: "info",
+    NotificationMessage.NotificationType.SUCCESS: "ok",
+    NotificationMessage.NotificationType.WARNING: "warn",
+    NotificationMessage.NotificationType.ERROR: "bad",
 }
 
 
 class NotificationConverter(HtmxConverter[Any, Never, NotificationMessage]):
+    """Converts NotificationMessages to strings with HTMX components."""
     def __init__(self, template_provider: Callable[[str], Template]):
         self._template = template_provider("notifications/notification.html")
 
+    @override
     def convert_in(self, json: Any) -> Never:
-        pass
+        """Notifications are not received from UI"""
 
+    @override
     def convert_out(self, message: NotificationMessage):
+        """Converts NotificationMessage to UI elements to show."""
         cls = cls_conversions.get(message.type, None)
         return self._template.render(
             content=message.message,

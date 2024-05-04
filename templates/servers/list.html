@@ -1,4 +1,6 @@
+<title>PyCon - Servers</title>
 <div id="content" hx-swap-oob="true">
+    Servers
     <div hx-ext="ws" ws-connect="/servers/updates">
         {% for server in servers %}
             <div class="box {{ 'plain' if ((statuses[server.uid]).rcon_connected) else 'warn' }}" id="server_{{ server.uid }}">

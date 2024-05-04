@@ -1,6 +1,6 @@
 <div id="rcon" hx-swap-oob="afterbegin">
     <div class="margin-block-end">
         <div class="chip ">[{{ timestamp }}] {{ user }} issued command: {{ command }}</div>
-        <div class="chip ok">{{ response }}</div>
+        <div class="chip ok">{{ response|safe }}</div>
     </div>
 </div>

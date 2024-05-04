@@ -1,0 +1,87 @@
+.absolute {
+    position: absolute;
+}
+
+.relative {
+    position: relative;
+}
+
+.black {
+    color: #000000
+}
+
+.dark-blue {
+    color: #0000AA
+}
+
+.dark-green {
+    color: #00AA00
+}
+
+.dark-aqua {
+    color: #00AAAA
+}
+
+.dark-red {
+    color: #AA0000
+}
+
+.dark-purple {
+    color: #AA00AA
+}
+
+.gold {
+    color: #FFAA00
+}
+
+.gray {
+    color: #AAAAAA
+}
+
+.dark-gray {
+    color: #555555
+}
+
+.blue {
+    color: #5555FF
+}
+
+.green {
+    color: #55FF55
+}
+
+.aqua {
+    color: #55FFFF
+}
+
+.red {
+    color: #FF5555
+}
+
+.light-purple {
+    color: #FF55FF
+}
+
+.yellow {
+    color: #FFFF55
+}
+
+.white {
+    color: #FFFFFF
+}
+
+.bold {
+    font-weight: bold;
+}
+
+.strikethrough {
+    text-decoration: line-through;
+}
+
+.underline {
+    text-decoration: underline;
+}
+
+.italic {
+    font-style: italic;
+}

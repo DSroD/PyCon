@@ -1,37 +1,46 @@
+"""Main module for PyConCraft app."""
+import logging
+import uuid
+from contextlib import asynccontextmanager
 from datetime import timedelta
 
 import uvicorn
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
+from auth.hashing import hash_password
 from auth.jwt import JwtTokenUtils
 from configuration import Configuration
-from dao.server_dao import ServerDao
-from dao.user_dao import UserDao
-from dependencies import initialize_dao, ioc
+from dao.dao import ServerDao, UserDao
+from dependencies import dao_factory, ioc, migrator_factory
 from messages.heartbeat import HeartbeatConverter
 from messages.notifications import NotificationConverter
-from pubsub.inmemory import InProcessPubSub
+from models.user import UserCapability
+from pubsub.inprocess import InProcessPubSub
 from pubsub.pubsub import PubSub
-from routes import login, index, servers
-from services.heartbeat import HeartbeatPublisher
-from services.rcon_service import RconService
+from rcon.rcon_service import RconService
+from routes import auth, index, servers, users
+from services.heartbeat import HeartbeatPublisherService
 from services.server_status import ServerStatusService
 from services.service import ServiceLauncher
 from templating import TemplateProvider
+
+logging.basicConfig(level=logging.DEBUG)
+
+logger = logging.getLogger(__name__)
 
 configuration = Configuration()
 ioc.register(configuration)
 
 service_launcher = ServiceLauncher(ioc)
+ioc.register(service_launcher, ServiceLauncher)
 
 pubsub: PubSub = InProcessPubSub()
 ioc.register(pubsub, PubSub)
 
-daos = initialize_dao(configuration)
-(user_dao, server_dao) = daos
+(user_dao, server_dao) = dao_factory(configuration)
 
-ioc.register(user_dao, UserDao),
+ioc.register(user_dao, UserDao)
 ioc.register(server_dao, ServerDao)
 
 ioc.register(
@@ -41,29 +50,39 @@ ioc.register(
     )
 )
 
-templates = TemplateProvider("templates", "base.html")
+templates = TemplateProvider(
+    "templates",
+    "base.html",
+    {
+        "all_capabilities": UserCapability,
+    })
 ioc.register(templates)
 
 ioc.register(NotificationConverter(templates.get_template))
 ioc.register(HeartbeatConverter(templates.get_template))
 
-app = FastAPI()
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
-app.include_router(login.router)
-app.include_router(index.router)
-app.include_router(servers.router)
-
-
-@app.on_event("startup")
 async def startup():
-    for dao in daos:
-        if dao:
-            await dao.initialize()
+    """Startup logic."""
+    migrate = migrator_factory(configuration)
+    migrate()
+
+    # Default user init
+    default_user_pwd = hash_password(configuration.default_user_password)
+
+    logger.info("Creating user %s", configuration.default_user_name)
+    await user_dao.create(
+        configuration.default_user_name,
+        default_user_pwd,
+        [
+            UserCapability.USER_MANAGEMENT,
+            UserCapability.SERVER_MANAGEMENT,
+        ],
+        None
+    )
 
     service_launcher.launch(
-        HeartbeatPublisher(pubsub, 1)
+        HeartbeatPublisherService(pubsub, 1)
     )
 
     service_launcher.launch(
@@ -72,15 +91,42 @@ async def startup():
 
     all_servers = await server_dao.get_all()
 
+    def server_supplier(uid: uuid.UUID):
+        def supply():
+            return server_dao.get_by_uid(uid)
+        return supply
+
     for server in all_servers:
         service_launcher.launch(
-            RconService(pubsub, server)
+            RconService(
+                pubsub,
+                server.uid,
+                server_supplier(server.uid)
+            )
         )
 
 
-@app.on_event("shutdown")
 async def shutdown():
+    """Shutdown logic."""
     service_launcher.stop()
 
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    """Lifespan context manager"""
+    await startup()
+    yield
+    await shutdown()
+
+app = FastAPI(lifespan=lifespan)
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+app.include_router(auth.router)
+app.include_router(index.router)
+app.include_router(servers.router)
+app.include_router(users.router)
+
+
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8200)

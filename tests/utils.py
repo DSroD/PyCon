@@ -1,13 +1,42 @@
+"""General utility functions and classes for tests."""
 import asyncio
+from datetime import datetime, tzinfo, timedelta
 
 
-def run_async(coro):
-    """
-    Runs fn in new event loop
-    https://stackoverflow.com/questions/23033939/how-to-test-python-3-4-asyncio-code
-    :param coro: Coroutine to run
-    """
-    def wrapper(*args, **kwargs):
-        loop = asyncio.new_event_loop()
-        return loop.run_until_complete(coro(*args, **kwargs))
-    return wrapper
+async def yield_to_event_loop():
+    """Yields control to the event loop."""
+    # This approach was discussed in https://github.com/python/asyncio/issues/284
+    await asyncio.sleep(0)
+
+
+class TestTimeProvider:
+    """Time provider to be used in tests to set exact time."""
+    def __init__(self, time: datetime):
+        self._time = time
+
+    def __call__(self, tzone: tzinfo):
+        return self._time.astimezone(tzone)
+
+    def set_time(self, time: datetime):
+        """Sets time to be provided to given time"""
+        self._time = time
+
+    def pass_time(self, delta: timedelta):
+        """Moves time by given timedelta"""
+        self._time += delta
+
+
+class PacketProvider:
+    """Provides packets"""
+    def __init__(self, packets: bytes):
+        self._packets = packets
+
+    def __call__(self, n: int):
+        return self._get(n)
+
+    async def _get(self, n: int):
+        if n > len(self._packets):
+            raise asyncio.IncompleteReadError(self._packets, n)
+        res = self._packets[:n]
+        self._packets = self._packets[n:]
+        return res

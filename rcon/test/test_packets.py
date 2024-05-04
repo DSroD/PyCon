@@ -1,15 +1,24 @@
-import asyncio
+"""RCON packet tests."""
+# pylint: disable=missing-class-docstring
+
 import unittest
 
 from models.server import Server
-from rcon.encoding import encoding
-from rcon.packets import LoginPacket, CommandPacket, CommandEndPacket, next_packet, LoginSuccessResponse, \
-    LoginFailedResponse, CommandResponse
-from tests.utils import run_async
+from rcon.packets import (
+    LoginPacket,
+    CommandPacket,
+    CommandEndPacket,
+    next_packet,
+    LoginSuccessResponse,
+    InvalidPasswordResponse,
+    CommandResponse, encoding
+)
+from tests.utils import PacketProvider
 
 
-class PacketTest(unittest.TestCase):
+class PacketTest(unittest.IsolatedAsyncioTestCase):
     def test_login_packet_encoding(self):
+        """Tests login packet encoding."""
         packet = LoginPacket("pwd", 1)
         encoded = packet.encode(encoding(Server.Type.MINECRAFT_SERVER))
 
@@ -24,6 +33,7 @@ class PacketTest(unittest.TestCase):
         self.assertEqual(body, encoded)
 
     def test_command_packet_encoding(self):
+        """Tests command packet encoding."""
         packet = CommandPacket("help", 5)
         encoded = packet.encode(encoding(Server.Type.MINECRAFT_SERVER))
 
@@ -38,6 +48,7 @@ class PacketTest(unittest.TestCase):
         self.assertEqual(body, encoded)
 
     def test_command_end_encoding(self):
+        """Tests command end packet encoding."""
         packet = CommandEndPacket(6)
         encoded = packet.encode(encoding(Server.Type.MINECRAFT_SERVER))
 
@@ -50,8 +61,8 @@ class PacketTest(unittest.TestCase):
 
         self.assertEqual(body, encoded)
 
-    @run_async
     async def test_success_login_packet_decode(self):
+        """Tests decoding of a successful login response packet."""
         request_id = b"\x08\x00\x00\x00"
         packet_type = b"\x02\x00\x00\x00"
         padding = b"\x00\x00"
@@ -62,8 +73,8 @@ class PacketTest(unittest.TestCase):
 
         self.assertEqual(packet, LoginSuccessResponse(8))
 
-    @run_async
     async def test_failure_login_packet_decode(self):
+        """Tests decoding of a failed login response packet."""
         request_id = b"\xFF\xFF\xFF\xFF"  # Request id -1 -> failure
         packet_type = b"\x02\x00\x00\x00"  # Packet type 2
         padding = b"\x00\x00"
@@ -72,10 +83,10 @@ class PacketTest(unittest.TestCase):
         content = PacketProvider(length + request_id + packet_type + padding)
         packet = await next_packet(content)
 
-        self.assertEqual(packet, LoginFailedResponse())
+        self.assertEqual(packet, InvalidPasswordResponse())
 
-    @run_async
     async def test_command_packet_decode(self):
+        """Tests decoding of a command response packet."""
         request_id = b"\x07\x00\x00\x00"  # 7
         packet_type = b"\x00\x00\x00\x00"   # 0
         padding = b"\x00\x00"
@@ -86,18 +97,3 @@ class PacketTest(unittest.TestCase):
         packet = await next_packet(content)
 
         self.assertEqual(packet, CommandResponse(7, payload))
-
-
-class PacketProvider:
-    def __init__(self, packet: bytes):
-        self._packet = packet
-
-    def __call__(self, n: int):
-        return self._get(n)
-
-    async def _get(self, n: int):
-        if n > len(self._packet):
-            raise asyncio.IncompleteReadError(self._packet, n)
-        res = self._packet[:n]
-        self._packet = self._packet[n:]
-        return res

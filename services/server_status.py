@@ -1,18 +1,26 @@
+"""Module with service that keeps track of server status."""
 import uuid
 from collections import defaultdict
 from dataclasses import dataclass
 
-from messages.server_status import server_status_topic, ServerStatusMessage, RconConnected, RconDisconnected
+from messages.server_status import (
+    server_status_topic,
+    ServerStatusMessage,
+    RconConnected,
+    RconDisconnected
+)
 from pubsub.pubsub import PubSub
 from services.service import Service
 
 
 @dataclass
 class ServerStatus:
+    """Status of the server."""
     rcon_connected: bool
 
 
 class ServerStatusService(Service):
+    """This service keeps track of server statuses."""
     def __init__(self, pubsub: PubSub):
         self._pubsub = pubsub
         self._server_states = defaultdict(
@@ -35,10 +43,22 @@ class ServerStatusService(Service):
     async def stop(self):
         pass
 
-    def get_state(self, server_id: uuid.UUID):
-        return self._server_states[server_id]
+    def get_state(self, server_uuid: uuid.UUID):
+        """
+        Get the state of the server.
+
+        :param server_uuid: UUID of the server
+        :return: State of the server
+        """
+        return self._server_states[server_uuid]
 
     def get_states(self, server_ids: set[uuid.UUID]):
+        """
+        Get states of servers based on their IDs.
+
+        :param server_ids: Ids of servers to get their states for
+        :return: Server states
+        """
         return {sid: self._server_states[sid] for sid in server_ids}
 
     def _process_msg(self, msg: ServerStatusMessage):
