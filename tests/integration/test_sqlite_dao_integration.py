@@ -218,6 +218,8 @@ class _ServerDaoImpl(ServerDaoImpl):
         return self._con
 
 
+# Actual test runner
+
 class SqliteDaoIntegrationTest(
     PersistenceTests.UserDaoPersistenceIntegrationTests,
     PersistenceTests.ServerDaoPersistenceIntegrationTests

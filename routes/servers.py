@@ -4,8 +4,8 @@ import uuid
 from typing import Annotated, Callable, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocketException, status, Form
-from fastapi.websockets import WebSocket
 from fastapi.requests import Request
+from fastapi.websockets import WebSocket
 
 from dao.dao import ServerDao, UserDao
 from dependencies import (

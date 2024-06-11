@@ -1,8 +1,15 @@
 """Client for RCON communication."""
 
-import asyncio
 import logging
-from asyncio import StreamReader, StreamWriter
+from asyncio import (
+    StreamReader,
+    StreamWriter,
+    TimeoutError as AioTimeoutError,
+    IncompleteReadError,
+    wait_for,
+    open_connection,
+    sleep,
+)
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import Callable, Optional, Awaitable
@@ -19,12 +26,12 @@ from rcon.packets import (
     CommandPacket,
     CommandEndPacket,
     CommandResponse,
-    next_packet, encoding
+    next_packet,
+    encoding,
 )
 from rcon.rcon_client_errors import RequestIdMismatchError, InvalidPasswordError, InvalidPacketError
 from rcon.request_id import IntRequestIdProvider
 from utils.retry import retry_jitter_exponential_backoff as retry, RetryConfiguration
-
 
 logger = logging.getLogger(__name__)
 
@@ -43,13 +50,21 @@ class RconConnection:
 
     async def send(self, data: OutgoingRconPacket):
         """Sends a packet to the RCON."""
-        self._writer.write(data.encode(self._payload_encoding))
+        encoded = data.encode(self._payload_encoding)
+        logger.debug("Writing data to server: %s", encoded)
+        self._writer.write(encoded)
         await self._writer.drain()
+        # Required for ctx yield
+        await sleep(0)
 
     async def read(self) -> RconResponsePacket:
         """Reads a single packet from the RCON server."""
+        async def read_exactly(n: int):
+            logger.debug("Reading %d bytes", n)
+            return await self._reader.readexactly(n)
+
         return await next_packet(
-            self._reader.readexactly,
+            read_exactly,
         )
 
     def close(self):
@@ -83,6 +98,13 @@ class RconClient:
         """Sends a command to the RCON."""
         cmd_id = self._request_id_provider.get_request_id()
         end_id = self._request_id_provider.get_request_id()
+        logger.debug(
+            "Sending command to %s server %s. Request id: %s, ending id: %s",
+            msg.command,
+            self.server.name,
+            cmd_id,
+            end_id,
+        )
         self._requests[end_id] = RconClient.RequestMetadata(
             cmd_id, msg.issuing_user, msg.command
         )
@@ -92,6 +114,7 @@ class RconClient:
                 cmd_id
             )
         )
+        logger.info("User %s sent command %s to server %s", msg.issuing_user, msg.command, self.server.name)
         await self._connection.send(
             CommandEndPacket(
                 end_id
@@ -106,6 +129,10 @@ class RconClient:
         """Coroutine that reads responses from RCON."""
         while True:
             packet = await self._connection.read()
+            logger.debug(
+                "Got response packet from the RCON %s",
+                self.server.name,
+            )
             match packet:
                 case CommandResponse(request_id, payload):
                     if request_id in self._requests:
@@ -165,10 +192,10 @@ class RconClientManager:
                 InvalidPasswordError,
                 InvalidPacketError,
                 TimeoutError,
-                asyncio.TimeoutError,
+                AioTimeoutError,
                 ConnectionRefusedError,
                 OSError,
-                asyncio.IncompleteReadError,
+                IncompleteReadError,
             ),
             RetryConfiguration(
                 backoff_ms=1000,
@@ -186,7 +213,7 @@ class RconClientManager:
         server = await self._server_supplier()
 
         if server is None:
-            raise ValueError("Server not found")  # TODO: better exception?
+            raise RuntimeError("Server not found")  # TODO: ServerNotFoundException - structured errors
 
         logger.info(
             "Connecting to RCON %s:%s",
@@ -194,8 +221,8 @@ class RconClientManager:
             server.rcon_port,
         )
 
-        reader, writer = await asyncio.wait_for(
-            asyncio.open_connection(server.host, server.rcon_port),
+        reader, writer = await wait_for(
+            open_connection(server.host, server.rcon_port),
             self._timeout
         )
 
@@ -211,8 +238,8 @@ class RconClientManager:
 
         # Source dedicated server sends empty "command response" packet before login response
         if server.type == Server.Type.SOURCE_SERVER:
-            serverdata_response = await conn.read()
-            match serverdata_response:
+            data_response = await conn.read()
+            match data_response:
                 case CommandResponse(resp_req_id, payload):
                     if resp_req_id != request_id:
                         raise RequestIdMismatchError(request_id, resp_req_id)

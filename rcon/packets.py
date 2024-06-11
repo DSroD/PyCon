@@ -95,7 +95,7 @@ class CommandEndPacket(OutgoingRconPacket):
 
     @property
     def _type(self) -> int:
-        return 2
+        return 99
 
     @property
     def _request_id(self) -> int:

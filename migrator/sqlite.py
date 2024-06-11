@@ -15,7 +15,7 @@ def migrate(
         migrations_file="migrations.json",
         close=True
 ):
-    """Performs sqlite db migrations from migrations.json file"""
+    """Performs sqlite db migrations from json file"""
     con = sqlite3.connect(db) if isinstance(db, str) else db
     with con:
         _create_if_not_exists(con)
