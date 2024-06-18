@@ -95,6 +95,7 @@ class CommandEndPacket(OutgoingRconPacket):
 
     @property
     def _type(self) -> int:
+        # Invalid packet type - server will notify about it using empty response
         return 99
 
     @property

@@ -8,7 +8,6 @@ from asyncio import (
     IncompleteReadError,
     wait_for,
     open_connection,
-    sleep,
 )
 from collections import defaultdict
 from dataclasses import dataclass
@@ -31,6 +30,7 @@ from rcon.packets import (
 )
 from rcon.rcon_client_errors import RequestIdMismatchError, InvalidPasswordError, InvalidPacketError
 from rcon.request_id import IntRequestIdProvider
+from utils.async_helpers import yield_to_event_loop
 from utils.retry import retry_jitter_exponential_backoff as retry, RetryConfiguration
 
 logger = logging.getLogger(__name__)
@@ -54,8 +54,8 @@ class RconConnection:
         logger.debug("Writing data to server: %s", encoded)
         self._writer.write(encoded)
         await self._writer.drain()
-        # Required for ctx yield
-        await sleep(0)
+        # Sometimes data is not sent without this yield
+        await yield_to_event_loop()
 
     async def read(self) -> RconResponsePacket:
         """Reads a single packet from the RCON server."""
@@ -114,7 +114,12 @@ class RconClient:
                 cmd_id
             )
         )
-        logger.info("User %s sent command %s to server %s", msg.issuing_user, msg.command, self.server.name)
+        logger.info(
+            "User %s sent command %s to server %s",
+            msg.issuing_user,
+            msg.command,
+            self.server.name
+        )
         await self._connection.send(
             CommandEndPacket(
                 end_id
@@ -213,7 +218,8 @@ class RconClientManager:
         server = await self._server_supplier()
 
         if server is None:
-            raise RuntimeError("Server not found")  # TODO: ServerNotFoundException - structured errors
+            # TODO: ServerNotFoundException - structured errors
+            raise RuntimeError("Server not found")
 
         logger.info(
             "Connecting to RCON %s:%s",

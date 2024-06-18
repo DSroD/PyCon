@@ -1,4 +1,7 @@
-"""Minecraft RCON integration tests."""
+"""
+Minecraft RCON integration tests.
+Requires docker to be available.
+"""
 # pylint: disable=missing-class-docstring,attribute-defined-outside-init
 import asyncio
 import unittest
@@ -12,7 +15,7 @@ from rcon.rcon_client import RconClientManager
 from rcon.request_id import IntRequestIdProvider
 
 
-class MinecraftRconIntegrationTests(unittest.IsolatedAsyncioTestCase):
+class MinecraftRconIntegrationTest(unittest.IsolatedAsyncioTestCase):
     def run(self, result=None):
         with DockerContainer("itzg/minecraft-server").with_env("EULA", "TRUE")\
                 .with_env("RCON_PASSWORD", "test")\

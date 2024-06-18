@@ -3,12 +3,6 @@ import asyncio
 from datetime import datetime, tzinfo, timedelta
 
 
-async def yield_to_event_loop():
-    """Yields control to the event loop."""
-    # This approach was discussed in https://github.com/python/asyncio/issues/284
-    await asyncio.sleep(0)
-
-
 class TestTimeProvider:
     """Time provider to be used in tests to set exact time."""
     def __init__(self, time: datetime):
