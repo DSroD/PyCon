@@ -4,7 +4,6 @@ import uuid
 from contextlib import asynccontextmanager
 from datetime import timedelta
 
-import uvicorn
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
@@ -25,12 +24,12 @@ from services.server_status import ServerStatusService
 from services.service import ServiceLauncher
 from templating import TemplateProvider
 
-logging.basicConfig(level=logging.DEBUG)
-
 logger = logging.getLogger(__name__)
 
 configuration = Configuration()
 ioc.register(configuration)
+
+logging.basicConfig(level=configuration.log_level)
 
 service_launcher = ServiceLauncher(ioc)
 ioc.register(service_launcher, ServiceLauncher)
@@ -127,6 +126,6 @@ app.include_router(index.router)
 app.include_router(servers.router)
 app.include_router(users.router)
 
-
 if __name__ == "__main__":
+    import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8200)

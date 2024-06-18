@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pubsub.filter import FieldContains, FieldLength, IsType, FieldEquals
 from pubsub.inprocess import InProcessPubSub
 from pubsub.topic import TopicDescriptor
-from tests.utils import yield_to_event_loop
+from utils.async_helpers import yield_to_event_loop
 
 
 @dataclass(eq=True, frozen=True)

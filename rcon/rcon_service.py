@@ -1,5 +1,6 @@
 """Service for communication with RCON."""
 import asyncio
+import logging
 import uuid
 from typing import Callable, Awaitable, Optional
 
@@ -13,6 +14,7 @@ from rcon.rcon_client import RconClientManager, RconClient
 from rcon.request_id import IntRequestIdProvider
 from services.service import Service, RecoverableError
 
+logger = logging.getLogger(__name__)
 
 def rcon_service_name(uid: uuid.UUID) -> str:
     """
@@ -62,7 +64,7 @@ class RconService(Service):
 
         try:
             async with asyncio.TaskGroup() as tg:
-                tg.create_task(self._write(client))
+                tg.create_task(self._send(client))
                 tg.create_task(self._read(client))
         finally:
             self._pubsub.publish(
@@ -78,7 +80,7 @@ class RconService(Service):
                 )
             )
 
-    async def _write(self, client: RconClient):
+    async def _send(self, client: RconClient):
         with self._pubsub.subscribe(
             rcon_command_topic(self._server_uid),
             FieldLength(lambda msg: msg.command, 1, FieldLength.Mode.MIN)
@@ -89,10 +91,7 @@ class RconService(Service):
     async def _read(self, client: RconClient):
         try:
             await client.read(
-                lambda msg: self._pubsub.publish(
-                    rcon_response_topic(self._server_uid),
-                    msg
-                ),
+                self._publish,
                 lambda err_msg: self._pubsub.publish(
                     notification_topic,
                     NotificationMessage(
@@ -104,6 +103,13 @@ class RconService(Service):
             )
         except* asyncio.IncompleteReadError as e:
             raise RecoverableError(e, 5000) from e
+
+    def _publish(self, msg):
+        logger.debug("Publishing %s", msg)
+        self._pubsub.publish(
+            rcon_response_topic(self._server_uid),
+            msg
+        )
 
     async def stop(self):
         pass

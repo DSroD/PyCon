@@ -25,8 +25,9 @@ class Configuration(BaseSettings):
         SqliteDbConfiguration(),
         discriminator='db_provider'
     )
-    access_token_expire_minutes: int = 120
+    access_token_expire_minutes: int = 10
     access_token_secret: str = "<<replace-me>>"
     base_template_name: str = "base.html"
     default_user_name: str = "admin"
     default_user_password: str = "admin"
+    log_level: str = "INFO"

@@ -14,6 +14,7 @@ services:
       RCON_PASSWORD: "pwd1"
       MAX_MEMORY: 2G
       RCON_PORT: 25575
+      VERSION: "1.20.4"
 
   mc2:
     image: itzg/minecraft-server
@@ -28,6 +29,7 @@ services:
       RCON_PASSWORD: "pwd2"
       MAX_MEMORY: 2G
       RCON_PORT: 25575
+      VERSION: "1.18"
 
   css1:
     image: foxylion/steam-css
@@ -35,3 +37,11 @@ services:
       - "27016:27015"
     environment:
       RCON_PASSWORD: "pwd_css"
+
+  pycon:
+    build: .
+    ports:
+      - "8000:80"
+    environment:
+      DEFAULT_USER_PASSWORD: "test"
+      LOG_LEVEL: "INFO"

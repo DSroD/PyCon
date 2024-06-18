@@ -53,7 +53,7 @@ class PacketTest(unittest.IsolatedAsyncioTestCase):
         encoded = packet.encode(encoding(Server.Type.MINECRAFT_SERVER))
 
         request_id = b"\x06\x00\x00\x00"  # 6
-        packet_type = b"\x02\x00\x00\x00"  # 2 - command end is empty command packet
+        packet_type = b"c\x00\x00\x00"  # 99 - command end is "invalid" packet
         padding = b"\x00\x00"
         length = b"\x0A\x00\x00\x00"
 

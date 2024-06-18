@@ -25,7 +25,7 @@ class UserView(BaseModel):
 class UserUpsert(UserView):
     """Model for user upsert"""
     disabled: bool = False
-    hashed_password: Optional[str]
+    hashed_password: Optional[str] = None
 
 
 class User(UserView):
@@ -37,8 +37,8 @@ class User(UserView):
 def from_form_data(
         username: Annotated[str, Form()],
         capabilities: Annotated[list[str], Form()] = None,
-        disabled: Annotated[bool, Form()] = False,
         password: Annotated[Optional[str], Form()] = None,
+        disabled: Annotated[bool, Form()] = False,
 ) -> UserUpsert:
     """Returns user model from Form data."""
     hashed_pwd = hash_password(password) if password else None
