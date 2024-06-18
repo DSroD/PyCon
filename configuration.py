@@ -33,5 +33,6 @@ class Configuration(BaseSettings):
     log_level: str = "INFO"
 
     class Config:
+        """Configuration settings"""
         env_nested_delimiter = '__'
         use_enum_values = True
