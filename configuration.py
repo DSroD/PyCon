@@ -7,7 +7,8 @@ from pydantic.dataclasses import dataclass
 from pydantic_settings import BaseSettings
 
 
-class DatabaseProvider(Enum):
+# str Enum workaround - https://github.com/pydantic/pydantic/issues/3850#issuecomment-1069353196
+class DatabaseProvider(str, Enum):
     """Enumeration of database providers."""
     SQLITE = "SQLITE"
 
@@ -27,7 +28,10 @@ class Configuration(BaseSettings):
     )
     access_token_expire_minutes: int = 10
     access_token_secret: str = "<<replace-me>>"
-    base_template_name: str = "base.html"
     default_user_name: str = "admin"
     default_user_password: str = "admin"
     log_level: str = "INFO"
+
+    class Config:
+        env_nested_delimiter = '__'
+        use_enum_values = True
