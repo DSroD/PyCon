@@ -9,9 +9,14 @@ from auth.jwt import JwtTokenUtils
 from configuration import Configuration
 from dao.dao import UserDao
 from dependencies import get_current_user, ioc
-from htmx import htmx_response_factory, HtmxResponse, HtmxResponseMeta, CookieMeta
+from htmx import (
+    htmx_response_factory,
+    notification_response_factory,
+    HtmxResponse,
+    HtmxResponseMeta,
+    CookieMeta,
+)
 from models.user import UserView
-from notifications import notification_response_factory
 
 router = APIRouter()
 
