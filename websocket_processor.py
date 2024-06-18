@@ -1,6 +1,7 @@
 """
-WebSocket Processor sends HTMX components from incoming PubSub messages.
+Websocket processor and messaging
 
+WebSocket Processor sends HTMX components from incoming PubSub messages
 to websockets and publishes incoming websocket messages to PubSub.
 """
 import asyncio
@@ -30,8 +31,9 @@ class WebsocketPubSub[MessageInT, MessageOutT]:
 
 class WebsocketProcessor[DataInT, MessageInT, MessageOutT]:
     """
-    Processes websocket messages and publishes them to publish topic,.
+    HTMX Websocket processor.
 
+    Processes websocket messages and publishes them to publish topic,
     subscribes to subscribe_topic with subscribe_filter and publishes
     messages to websocket.
     """
@@ -73,8 +75,9 @@ class WebsocketProcessor[DataInT, MessageInT, MessageOutT]:
 
     async def process(self):
         """
-        Starts reading the websocket, publishing content to publish_topic.
+        Runs websocket processor.
 
+        Starts reading the websocket, publishing content to publish_topic
         and writes messages from subscribe_topic to the websocket
         :return:
         """
