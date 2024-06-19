@@ -10,14 +10,14 @@ to ensure data persistence.
 
 ## Setup
 ### Environment variables
-| Variable                      | Default value  | Description                                                  |
-|-------------------------------|----------------|--------------------------------------------------------------|
-| LOG_LEVEL                     | INFO           | Log level (DEBUG, INFO, WARNING, ERROR)                      |
-| DEFAULT_USER_NAME             | admin          | Default username for service account                         |
-| DEFAULT_USER_PASSWORD         | admin          | Default password for service account                         |
-| ACCESS_TOKEN_SECRET           | <<replace-me>> | Secret for generating access tokens. Replace this!           |
-| ACCESS_TOKEN_EXPIRE_MINUTES   | 10             | Duration of maximal token validity. Should be greater than 2 |
-| DB_CONFIGURATION__DB_PROVIDER | SQLITE         | Currently only SQLITE is supported                           |
+| Variable                      | Default value    | Description                                                  |
+|-------------------------------|------------------|--------------------------------------------------------------|
+| LOG_LEVEL                     | INFO             | Log level (DEBUG, INFO, WARNING, ERROR)                      |
+| DEFAULT_USER_NAME             | admin            | Default username for service account                         |
+| DEFAULT_USER_PASSWORD         | admin            | Default password for service account                         |
+| ACCESS_TOKEN_SECRET           | <\<replace-me\>> | Secret for generating access tokens. Replace this!           |
+| ACCESS_TOKEN_EXPIRE_MINUTES   | 10               | Duration of maximal token validity. Should be greater than 2 |
+| DB_CONFIGURATION__DB_PROVIDER | SQLITE           | Currently only SQLITE is supported                           |
 
 ### Special environmental variables
 
