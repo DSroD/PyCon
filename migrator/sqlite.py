@@ -1,4 +1,4 @@
-"""Migration code for sqlite db"""
+"""Migration code for sqlite db."""
 import itertools
 import json
 import logging
@@ -6,6 +6,7 @@ import sqlite3
 from datetime import datetime
 from sqlite3 import Connection
 
+# TODO: This should be refactored as it is just quickly hacked together.
 
 logger = logging.getLogger(__name__)
 

@@ -4,6 +4,7 @@
 def leaves[ExcT](exception_group: ExceptionGroup[ExcT]) -> list[ExcT]:
     """
     Flattens exception groups into a list of exceptions.
+
     :param exception_group: Exception group
     :return: List of exceptions in a group
     """

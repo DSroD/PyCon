@@ -8,7 +8,7 @@ from services.service import Service
 
 
 class HeartbeatPublisherService(Service):
-    """Publishes heartbeat messages to the heartbeat topic."""
+    """Periodically publishes heartbeat messages to the heartbeat topic."""
     @property
     def name(self) -> str:
         return "heartbeat_publisher"

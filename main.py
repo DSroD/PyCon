@@ -67,6 +67,7 @@ async def startup():
     migrate()
 
     # Default user init
+    # TODO: Consider better solution such as non-persisted service account
     default_user_pwd = hash_password(configuration.default_user_password)
 
     logger.info("Creating user %s", configuration.default_user_name)
@@ -84,6 +85,7 @@ async def startup():
         HeartbeatPublisherService(pubsub, 1)
     )
 
+    # Watches for server status changes and provides latest state
     service_launcher.launch(
         ServerStatusService(pubsub), ServerStatusService
     )
@@ -96,6 +98,7 @@ async def startup():
         return supply
 
     for server in all_servers:
+        # Launch RCON services for all persisted servers
         service_launcher.launch(
             RconService(
                 pubsub,
@@ -112,7 +115,7 @@ async def shutdown():
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    """Lifespan context manager"""
+    """FastAPI Lifespan context manager"""
     await startup()
     yield
     await shutdown()

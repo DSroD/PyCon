@@ -34,7 +34,7 @@ class ServerStatusUpdateConverter(HtmxConverter[Never, Never, ServerStatusMessag
             server_uid: Optional[uuid.UUID] = None,
     ):
         """
-        Constructor.
+        Converter from ServerStatus messages to UI elements.
 
         When server_uid is None, converts to UI elements for server list.
         When server_uid is set, converts to UI elements for given server detail

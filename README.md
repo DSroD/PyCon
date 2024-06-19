@@ -29,7 +29,7 @@ When `DB_PROVIDER` is set to `SQLITE` following environmental variables are avai
 
 
 ## Usage
-Run the docker image with external port mapped to internal port 8000.
+Run the docker image with external port mapped to internal port 80.
 Connect using browser of your choice. Login using credentials set in
 environmental variables.
 

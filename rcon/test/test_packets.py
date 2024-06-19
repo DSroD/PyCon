@@ -13,7 +13,7 @@ from rcon.packets import (
     InvalidPasswordResponse,
     CommandResponse, encoding
 )
-from tests.utils import PacketProvider
+from utils.testing import PacketProvider
 
 
 class PacketTest(unittest.IsolatedAsyncioTestCase):
