@@ -6,7 +6,7 @@ from datetime import timedelta, datetime
 from auth import hashing
 from auth.jwt import JwtTokenUtils
 from models.user import UserView, UserCapability
-from tests.utils import TestTimeProvider
+from utils.testing import TestTimeProvider
 
 
 class AuthTests(unittest.TestCase):

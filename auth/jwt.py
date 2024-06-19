@@ -22,6 +22,7 @@ class JwtTokenUtils:
     ):
         """
         JwtTokenUtils class provides utility functions for JWT tokens.
+
         :param secret_key: Key for generating JWT tokens.
         :param access_token_expiry: Expiry time for JWT tokens.
         """

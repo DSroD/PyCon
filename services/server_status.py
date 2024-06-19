@@ -1,4 +1,4 @@
-"""Module with service that keeps track of server status."""
+"""Service that keeps track of server status."""
 import uuid
 from collections import defaultdict
 from dataclasses import dataclass
@@ -20,7 +20,11 @@ class ServerStatus:
 
 
 class ServerStatusService(Service):
-    """This service keeps track of server statuses."""
+    """
+    This service keeps track of server statuses.
+
+    Contains latest information of the RCON connection to each server.
+    """
     def __init__(self, pubsub: PubSub):
         self._pubsub = pubsub
         self._server_states = defaultdict(

@@ -7,9 +7,7 @@ from pydantic import BaseModel
 
 
 def model_mapper(model: type[BaseModel], default_args: Optional[dict] = None):
-    """
-    Returns row mapper for given model.
-    """
+    """Returns row mapper for given model."""
     def mapper(cursor: Cursor, row: tuple) -> model:
         def_args = default_args if default_args else {}
         result = {}

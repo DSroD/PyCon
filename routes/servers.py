@@ -148,6 +148,7 @@ async def server_management_upsert(
 
     name = rcon_service_name(server.uid)
 
+    # (Re)start RCON service for this server
     if service_launcher.is_running(name):
         service_launcher.stop_service(name)
 

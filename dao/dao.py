@@ -122,6 +122,7 @@ class UserDao(ABC):
     async def get_capabilities(self, username: str) -> list[UserCapability]:
         """
         Gets capabilities of a user.
+
         :param username:  Username
         :return: List of user capabilities
         """
