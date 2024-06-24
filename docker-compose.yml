@@ -7,7 +7,7 @@ services:
     stdin_open: true
     ports:
       - "25566:25565"
-      - "25576:25575"
+      - "25576:25575" # Exposed RCON port : Internal RCON port
     environment:
       EULA: "TRUE"
       TYPE: "PAPER"
@@ -22,7 +22,7 @@ services:
     stdin_open: true
     ports:
       - "25567:25565"
-      - "25577:25575"
+      - "25577:25575" # Exposed RCON port : Internal RCON port
     environment:
       EULA: "TRUE"
       TYPE: "PAPER"
@@ -34,7 +34,7 @@ services:
   css1:
     image: foxylion/steam-css
     ports:
-      - "27016:27015"
+      - "27016:27015" # Exposed RCON port : Internal RCON port
     environment:
       RCON_PASSWORD: "pwd_css"
 
